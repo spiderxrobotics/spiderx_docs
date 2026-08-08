@@ -1,69 +1,150 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { DocumentData } from '@/types/letterhead';
+import { DEFAULT_DOCUMENT } from '@/utils/defaultTemplates';
+import { HeaderNavbar } from '@/components/HeaderNavbar';
+import { ControlsSidebar } from '@/components/ControlsSidebar';
+import { LetterheadCanvas } from '@/components/LetterheadCanvas';
+import { SignaturePadModal } from '@/components/SignaturePadModal';
 
 export default function Home() {
+  // Main state holding all letterhead document configuration
+  const [document, setDocument] = useState<DocumentData>(DEFAULT_DOCUMENT);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  // Viewport & Layout preferences
+  const [zoomScale, setZoomScale] = useState<number>(0.9);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(380);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  // Signature Modal state
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
+  const [activeDirectorTarget, setActiveDirectorTarget] = useState<1 | 2>(1);
+
+  // Load saved preferences on mount
+  useEffect(() => {
+    const savedDoc = localStorage.getItem('spiderx_letterhead_doc');
+    if (savedDoc) {
+      try {
+        setDocument(JSON.parse(savedDoc));
+      } catch (err) {
+        console.error('Failed to parse saved document data:', err);
+      }
+    }
+
+    const savedTheme = localStorage.getItem('spiderx_theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+
+    const savedWidth = localStorage.getItem('spiderx_sidebar_width');
+    if (savedWidth) {
+      setSidebarWidth(Number(savedWidth));
+    }
+  }, []);
+
+  // Save document changes to LocalStorage
+  const handleDocumentChange = (updated: DocumentData) => {
+    setDocument(updated);
+    localStorage.setItem('spiderx_letterhead_doc', JSON.stringify(updated));
+  };
+
+  // Light / Dark Theme toggle
+  const handleToggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('spiderx_theme', newTheme);
+  };
+
+  // Sidebar width resize handler
+  const handleSidebarWidthChange = (newWidth: number) => {
+    setSidebarWidth(newWidth);
+    localStorage.setItem('spiderx_sidebar_width', String(newWidth));
+  };
+
+  // Signature Modal trigger
+  const handleOpenSignatureModal = (targetDirector: 1 | 2 = 1) => {
+    setActiveDirectorTarget(targetDirector);
+    setIsSignatureModalOpen(true);
+  };
+
+  // Signature save handler from Modal
+  const handleSaveSignature = (dataUrl: string, targetDirector: 1 | 2 = 1) => {
+    if (targetDirector === 2) {
+      handleDocumentChange({
+        ...document,
+        signatory: {
+          ...document.signatory,
+          director2SignatureImage: dataUrl,
+          showDirector2Signature: true,
+        },
+      });
+    } else {
+      handleDocumentChange({
+        ...document,
+        signatory: {
+          ...document.signatory,
+          signatureImage: dataUrl,
+          showSignature: true,
+        },
+      });
+    }
+  };
+
+  // Print & PDF Export trigger
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Reset to default SpiderX configuration
+  const handleResetDefault = () => {
+    if (confirm('Are you sure you want to reset all document fields to SpiderX defaults?')) {
+      setDocument(DEFAULT_DOCUMENT);
+      localStorage.removeItem('spiderx_letterhead_doc');
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className={`${theme} h-screen max-h-screen overflow-hidden bg-background flex flex-col font-sans text-foreground antialiased transition-colors duration-200`}>
+      {/* Top Header Navbar */}
+      <HeaderNavbar
+        document={document}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onImportJson={handleDocumentChange}
+        onPrint={handlePrint}
+      />
+
+      {/* Main Studio Workbench (Fixed Sidebar + Scrollable Canvas) */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative h-[calc(100vh-57px)]">
+        {/* Fixed Controls Sidebar */}
+        <ControlsSidebar
+          document={document}
+          onChange={handleDocumentChange}
+          onOpenSignatureModal={handleOpenSignatureModal}
+          zoomScale={zoomScale}
+          onZoomChange={setZoomScale}
+          onResetDefault={handleResetDefault}
+          width={sidebarWidth}
+          onWidthChange={handleSidebarWidthChange}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        {/* Scrollable Center Workbench Canvas Area with ReactFlow Dot Grid */}
+        <section className="flex-1 h-full bg-canvas-grid border-l border-border overflow-y-auto overflow-x-auto flex items-start justify-center p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-border">
+          <LetterheadCanvas document={document} zoomScale={zoomScale} />
+        </section>
+      </div>
+
+      {/* Signature Modal */}
+      <SignaturePadModal
+        isOpen={isSignatureModalOpen}
+        targetDirector={activeDirectorTarget}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onSave={handleSaveSignature}
+      />
+    </main>
   );
 }

@@ -1,0 +1,637 @@
+'use client';
+
+import React from 'react';
+import { DocumentData, DocumentPage } from '@/types/letterhead';
+
+interface LetterheadCanvasProps {
+  document: DocumentData;
+  zoomScale: number;
+}
+
+export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
+  document: doc,
+  zoomScale,
+}) => {
+  const { layout, recipient, body, signatory, refNumber, date } = doc;
+
+  // Conversion: 1mm approx 3.7795px at 96 DPI
+  const mmToPx = (mm: number) => Math.round(mm * 3.7795);
+
+  const topPx = mmToPx(layout.marginTopMm);
+  const bottomPx = mmToPx(layout.marginBottomMm);
+  const leftPx = mmToPx(layout.paddingLeftMm);
+  const rightPx = mmToPx(layout.paddingRightMm);
+
+  const isMultiPage = body.multiPage?.enableMultiPage ?? false;
+  
+  // Resolve pages list (support fallback from legacy page2Paragraphs)
+  let additionalPages: DocumentPage[] = body.multiPage?.pages || [];
+  if (isMultiPage && additionalPages.length === 0 && (body.multiPage?.page2Paragraphs?.length || 0) > 0) {
+    additionalPages = [
+      {
+        id: 'page-2',
+        pageNumber: 2,
+        paragraphs: body.multiPage?.page2Paragraphs || [],
+      },
+    ];
+  }
+
+  // Ensure if multiPage is enabled, we have at least 1 additional page
+  if (isMultiPage && additionalPages.length === 0) {
+    additionalPages = [
+      {
+        id: 'page-2',
+        pageNumber: 2,
+        paragraphs: [
+          'Following our initial discussions, this section details the project milestones, deliverables, and technical governance framework.',
+        ],
+      },
+    ];
+  }
+
+  const totalPages = isMultiPage ? 1 + additionalPages.length : 1;
+
+  // Helper render for Director Signatures & Company Seal
+  const renderSignaturesAndSeal = () => {
+    return (
+      <div className="pt-6 mt-auto">
+        {signatory.mode === 'dual' ? (
+          /* DUAL DIRECTORS MODE */
+          <div
+            className={`flex ${
+              signatory.dualLayout === 'stacked'
+                ? 'flex-col gap-6'
+                : 'flex-row items-end justify-between gap-6'
+            }`}
+          >
+            {/* Director 1 */}
+            <div className="flex-1 relative">
+              <div className="relative inline-block min-w-[200px]">
+                {signatory.showSeal && signatory.sealImage && (
+                  <div
+                    className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
+                    style={{
+                      transform: `scale(${signatory.sealScale || 1.0})`,
+                      opacity: signatory.sealOpacity || 0.85,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={signatory.sealImage} alt="Seal" className="w-24 h-24 object-contain" />
+                  </div>
+                )}
+                {signatory.showSignature && (
+                  <div className="h-14 mb-1 flex items-end">
+                    {signatory.signatureImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={signatory.signatureImage} alt="Dir 1 Sig" className="h-full max-h-14 object-contain" />
+                    ) : (
+                      <div className="h-10 border-b border-slate-300 w-44 flex items-end">
+                        <span className="text-[10px] text-slate-400 italic">[ Director 1 Signature ]</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="border-t border-slate-400 pt-1 mt-1">
+                  <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
+                  <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
+                  <p className="text-[10px] text-slate-500">{signatory.companyName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Director 2 */}
+            <div className="flex-1 text-right relative">
+              <div className="relative inline-block min-w-[200px] text-right">
+                {signatory.showDirector2Seal && signatory.director2SealImage && (
+                  <div
+                    className="absolute -top-10 -right-6 pointer-events-none z-10 select-none"
+                    style={{
+                      transform: `scale(${signatory.sealScale || 1.0})`,
+                      opacity: signatory.sealOpacity || 0.85,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={signatory.director2SealImage} alt="Dir 2 Seal" className="w-24 h-24 object-contain" />
+                  </div>
+                )}
+                {signatory.showDirector2Signature && (
+                  <div className="h-14 mb-1 flex items-end justify-end">
+                    {signatory.director2SignatureImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={signatory.director2SignatureImage} alt="Dir 2 Sig" className="h-full max-h-14 object-contain" />
+                    ) : (
+                      <div className="h-10 border-b border-slate-300 w-44 flex items-end justify-end">
+                        <span className="text-[10px] text-slate-400 italic">[ Director 2 Signature ]</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="border-t border-slate-400 pt-1 mt-1">
+                  <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.director2Name || 'Director Name'}</p>
+                  <p className="text-[11px] text-slate-600 font-medium">{signatory.director2Designation || 'Director'}</p>
+                  <p className="text-[10px] text-slate-500">{signatory.director2CompanyName || signatory.companyName}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* SINGLE DIRECTOR MODE */
+          <div
+            className={`flex ${
+              signatory.alignment === 'right'
+                ? 'justify-end'
+                : signatory.alignment === 'center'
+                ? 'justify-center'
+                : 'justify-start'
+            }`}
+          >
+            <div className="relative inline-block min-w-[220px]">
+              {signatory.showSeal && signatory.sealImage && (
+                <div
+                  className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
+                  style={{
+                    transform: `scale(${signatory.sealScale || 1.0})`,
+                    opacity: signatory.sealOpacity || 0.85,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={signatory.sealImage} alt="Official Seal" className="w-24 h-24 object-contain" />
+                </div>
+              )}
+              {signatory.showSignature && (
+                <div className="h-16 mb-1 flex items-end">
+                  {signatory.signatureImage ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={signatory.signatureImage} alt="Sig" className="h-full max-h-16 object-contain" />
+                  ) : (
+                    <div className="h-10 border-b border-slate-300 w-48 flex items-end">
+                      <span className="text-[10px] text-slate-400 italic">[ Authorized Signature ]</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="border-t border-slate-400 pt-1 mt-1">
+                <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
+                <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
+                <p className="text-[10px] text-slate-500">{signatory.companyName}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full flex justify-center py-4 no-print-padding select-none">
+      {/* Zoom Container Wrapper */}
+      <div
+        className="transition-transform origin-top duration-200 flex flex-col gap-8 items-center"
+        style={{
+          transform: `scale(${zoomScale})`,
+          width: '210mm',
+        }}
+      >
+        {/* ================= PAGE 1 ================= */}
+        <div
+          id="spiderx-print-canvas"
+          className="a4-container relative bg-white shadow-2xl text-slate-900 overflow-hidden font-sans border border-slate-200 print:border-none print:break-after-page"
+          style={{
+            width: '210mm',
+            minHeight: '297mm',
+            height: '297mm',
+            fontFamily: layout.fontFamily || 'Inter',
+            fontSize: `${layout.fontSizePt || 10.5}pt`,
+            lineHeight: layout.lineHeight || 1.45,
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Background Letterhead Image Overlay */}
+          {layout.showLetterheadBackground && layout.letterheadImage && (
+            <div
+              className={`absolute inset-0 pointer-events-none z-0 ${
+                layout.includeLetterheadInPrint ? '' : 'no-print'
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={layout.letterheadImage}
+                alt="Letterhead Overlay"
+                className="w-full h-full object-cover select-none"
+              />
+            </div>
+          )}
+
+          {/* Visual Alignment Guides */}
+          {layout.showAlignmentGuides && (
+            <div className="no-print absolute inset-0 pointer-events-none z-10">
+              <div
+                className="absolute left-0 right-0 border-b border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                style={{ top: `${topPx}px` }}
+              >
+                <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                  Header Clearance ({layout.marginTopMm}mm)
+                </span>
+              </div>
+
+              <div
+                className="absolute left-0 right-0 border-t border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                style={{ bottom: `${bottomPx}px` }}
+              >
+                <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                  Footer Clearance ({layout.marginBottomMm}mm)
+                </span>
+              </div>
+
+              <div
+                className="absolute top-0 bottom-0 border-r border-dashed border-[#7f469b]/40"
+                style={{ left: `${leftPx}px` }}
+              />
+
+              <div
+                className="absolute top-0 bottom-0 border-l border-dashed border-[#7f469b]/40"
+                style={{ right: `${rightPx}px` }}
+              />
+            </div>
+          )}
+
+          {/* Page 1 Document Body */}
+          <div
+            className="relative z-20 flex flex-col justify-between h-full text-slate-900"
+            style={{
+              paddingTop: `${topPx}px`,
+              paddingBottom: `${bottomPx}px`,
+              paddingLeft: `${leftPx}px`,
+              paddingRight: `${rightPx}px`,
+              boxSizing: 'border-box',
+            }}
+          >
+            <div className="flex-1 flex flex-col justify-start">
+              {/* Ref Number & Date Row */}
+              <div className="flex items-center justify-between text-xs mb-6 pb-2 border-b border-slate-200/80">
+                <div>
+                  {refNumber && (
+                    <span className="font-semibold text-slate-700 tracking-wider">
+                      {refNumber}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  {date && (
+                    <span className="text-slate-800 font-semibold bg-[#7f469b]/10 text-[#7f469b] px-2 py-0.5 rounded-md border border-[#7f469b]/20">
+                      {date}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recipient Address */}
+              <div className="mb-6 space-y-0.5">
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">To,</p>
+                {recipient.name && (
+                  <p className="font-bold text-slate-900 text-sm">
+                    {recipient.name}
+                  </p>
+                )}
+                {recipient.designation && (
+                  <p className="text-xs text-slate-700 font-medium">
+                    {recipient.designation}
+                  </p>
+                )}
+                {recipient.organization && (
+                  <p className="text-xs text-slate-800 font-semibold">
+                    {recipient.organization}
+                  </p>
+                )}
+                {recipient.addressLine1 && (
+                  <p className="text-xs text-slate-600">
+                    {recipient.addressLine1}
+                  </p>
+                )}
+                {recipient.cityStateZip && (
+                  <p className="text-xs text-slate-600">
+                    {recipient.cityStateZip}
+                  </p>
+                )}
+                {recipient.email && (
+                  <p className="text-xs text-slate-500 font-mono pt-0.5">
+                    Email: {recipient.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Subject Line */}
+              {body.showSubject && body.subject && (
+                <div className="mb-6 p-3 bg-[#7f469b]/5 border-l-4 rounded-r-md border-[#7f469b]">
+                  <p className="font-bold text-slate-900 tracking-wide uppercase text-xs">
+                    <span className="text-[#7f469b] font-extrabold mr-2">SUBJECT:</span>
+                    {body.subject}
+                  </p>
+                </div>
+              )}
+
+              {/* Page 1 Body Paragraphs */}
+              <div className="space-y-3 text-slate-800 text-justify leading-normal">
+                {body.paragraphs.map((p, idx) => (
+                  <p key={idx} className="whitespace-pre-line">
+                    {p}
+                  </p>
+                ))}
+              </div>
+
+              {/* Bullet Points / Table on Page 1 if Single Page */}
+              {!isMultiPage && body.showBulletPoints && body.bulletPoints.length > 0 && (
+                <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
+                  {body.bulletTitle && (
+                    <p className="font-semibold text-xs text-slate-900 mb-2">
+                      {body.bulletTitle}
+                    </p>
+                  )}
+                  <ul className="list-disc list-inside space-y-1 text-xs text-slate-700">
+                    {body.bulletPoints.map((point, idx) => (
+                      <li key={idx}>
+                        <span className="text-slate-800 font-medium">{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {!isMultiPage && body.showTable && (body.tableRows || []).length > 0 && (
+                <div className="my-4 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+                  {body.tableTitle && (
+                    <div className="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200">
+                      <p className="font-semibold text-xs text-slate-800 uppercase tracking-wide">
+                        {body.tableTitle}
+                      </p>
+                    </div>
+                  )}
+                  <table className="w-full text-xs text-left">
+                    <tbody>
+                      {(body.tableRows || []).map((row, idx) => (
+                        <tr
+                          key={idx}
+                          className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
+                        >
+                          <td className="py-1.5 px-3 font-semibold text-slate-700 border-r border-slate-200/60 w-1/3">
+                            {row.label}
+                          </td>
+                          <td className="py-1.5 px-3 text-slate-900 font-medium">
+                            {row.value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {!isMultiPage && body.closingSalutation && (
+                <div className="mt-6 text-xs font-medium text-slate-700">
+                  <p>{body.closingSalutation}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Page 1 Footer */}
+            {isMultiPage ? (
+              <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                <span className="italic font-semibold text-[#7f469b]">
+                  {body.multiPage?.continuedNoticeText || '...Continued on Next Page'}
+                </span>
+                <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded-md">
+                  Page 1 of {totalPages}
+                </span>
+              </div>
+            ) : (
+              renderSignaturesAndSeal()
+            )}
+          </div>
+        </div>
+
+        {/* ================= PAGES 2 THROUGH N ================= */}
+        {isMultiPage &&
+          additionalPages.map((pg, pgIdx) => {
+            const pageNum = pgIdx + 2;
+            const isLastPage = pageNum === totalPages;
+
+            return (
+              <div
+                key={pg.id || `page-${pageNum}`}
+                className="a4-container relative bg-white shadow-2xl text-slate-900 overflow-hidden font-sans border border-slate-200 print:border-none print:break-before-page"
+                style={{
+                  width: '210mm',
+                  minHeight: '297mm',
+                  height: '297mm',
+                  fontFamily: layout.fontFamily || 'Inter',
+                  fontSize: `${layout.fontSizePt || 10.5}pt`,
+                  lineHeight: layout.lineHeight || 1.45,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {/* Background Image Overlay */}
+                {layout.showLetterheadBackground && layout.letterheadImage && (
+                  <div
+                    className={`absolute inset-0 pointer-events-none z-0 ${
+                      layout.includeLetterheadInPrint ? '' : 'no-print'
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={layout.letterheadImage}
+                      alt={`Letterhead Overlay Page ${pageNum}`}
+                      className="w-full h-full object-cover select-none"
+                    />
+                  </div>
+                )}
+
+                {/* Alignment Guides */}
+                {layout.showAlignmentGuides && (
+                  <div className="no-print absolute inset-0 pointer-events-none z-10">
+                    <div
+                      className="absolute left-0 right-0 border-b border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                      style={{ top: `${topPx}px` }}
+                    >
+                      <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                        Header Clearance ({layout.marginTopMm}mm)
+                      </span>
+                    </div>
+
+                    <div
+                      className="absolute left-0 right-0 border-t border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                      style={{ bottom: `${bottomPx}px` }}
+                    >
+                      <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                        Footer Clearance ({layout.marginBottomMm}mm)
+                      </span>
+                    </div>
+
+                    <div
+                      className="absolute top-0 bottom-0 border-r border-dashed border-[#7f469b]/40"
+                      style={{ left: `${leftPx}px` }}
+                    />
+
+                    <div
+                      className="absolute top-0 bottom-0 border-l border-dashed border-[#7f469b]/40"
+                      style={{ right: `${rightPx}px` }}
+                    />
+                  </div>
+                )}
+
+                {/* Page N Content */}
+                <div
+                  className="relative z-20 flex flex-col justify-between h-full text-slate-900"
+                  style={{
+                    paddingTop: `${topPx}px`,
+                    paddingBottom: `${bottomPx}px`,
+                    paddingLeft: `${leftPx}px`,
+                    paddingRight: `${rightPx}px`,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <div className="flex-1 flex flex-col justify-start">
+                    {/* Header Bar */}
+                    <div className="flex items-center justify-between text-xs mb-6 pb-2 border-b border-slate-200/80">
+                      <span className="font-semibold text-slate-700">
+                        {refNumber} (Continuation — Page {pageNum})
+                      </span>
+                      <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded-md">
+                        Page {pageNum} of {totalPages}
+                      </span>
+                    </div>
+
+                    {/* Page Specific Paragraphs */}
+                    {pg.paragraphs.length > 0 && (
+                      <div className="space-y-3 text-slate-800 text-justify leading-normal mb-4">
+                        {pg.paragraphs.map((p, idx) => (
+                          <p key={idx} className="whitespace-pre-line">
+                            {p}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Bullet Points on this Page */}
+                    {pg.showBulletPoints && (pg.bulletPoints || []).length > 0 && (
+                      <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
+                        {pg.bulletTitle && (
+                          <p className="font-semibold text-xs text-slate-900 mb-2">
+                            {pg.bulletTitle}
+                          </p>
+                        )}
+                        <ul className="list-disc list-inside space-y-1 text-xs text-slate-700">
+                          {(pg.bulletPoints || []).map((point, idx) => (
+                            <li key={idx}>
+                              <span className="text-slate-800 font-medium">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Table on this Page */}
+                    {pg.showTable && (pg.tableRows || []).length > 0 && (
+                      <div className="my-4 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+                        {pg.tableTitle && (
+                          <div className="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200">
+                            <p className="font-semibold text-xs text-slate-800 uppercase tracking-wide">
+                              {pg.tableTitle}
+                            </p>
+                          </div>
+                        )}
+                        <table className="w-full text-xs text-left">
+                          <tbody>
+                            {(pg.tableRows || []).map((row, idx) => (
+                              <tr
+                                key={idx}
+                                className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
+                              >
+                                <td className="py-1.5 px-3 font-semibold text-slate-700 border-r border-slate-200/60 w-1/3">
+                                  {row.label}
+                                </td>
+                                <td className="py-1.5 px-3 text-slate-900 font-medium">
+                                  {row.value}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Last Page Extras: Global Bullet Points & Table if configured on document body */}
+                    {isLastPage && body.showBulletPoints && body.bulletPoints.length > 0 && !pg.showBulletPoints && (
+                      <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
+                        {body.bulletTitle && (
+                          <p className="font-semibold text-xs text-slate-900 mb-2">
+                            {body.bulletTitle}
+                          </p>
+                        )}
+                        <ul className="list-disc list-inside space-y-1 text-xs text-slate-700">
+                          {body.bulletPoints.map((point, idx) => (
+                            <li key={idx}>
+                              <span className="text-slate-800 font-medium">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {isLastPage && body.showTable && (body.tableRows || []).length > 0 && !pg.showTable && (
+                      <div className="my-4 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+                        {body.tableTitle && (
+                          <div className="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200">
+                            <p className="font-semibold text-xs text-slate-800 uppercase tracking-wide">
+                              {body.tableTitle}
+                            </p>
+                          </div>
+                        )}
+                        <table className="w-full text-xs text-left">
+                          <tbody>
+                            {(body.tableRows || []).map((row, idx) => (
+                              <tr
+                                key={idx}
+                                className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
+                              >
+                                <td className="py-1.5 px-3 font-semibold text-slate-700 border-r border-slate-200/60 w-1/3">
+                                  {row.label}
+                                </td>
+                                <td className="py-1.5 px-3 text-slate-900 font-medium">
+                                  {row.value}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Closing Salutation on Last Page */}
+                    {isLastPage && body.closingSalutation && (
+                      <div className="mt-6 text-xs font-medium text-slate-700">
+                        <p>{body.closingSalutation}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer / Signatures */}
+                  {!isLastPage ? (
+                    <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                      <span className="italic font-semibold text-[#7f469b]">
+                        {body.multiPage?.continuedNoticeText || '...Continued on Next Page'}
+                      </span>
+                      <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded-md">
+                        Page {pageNum} of {totalPages}
+                      </span>
+                    </div>
+                  ) : (
+                    renderSignaturesAndSeal()
+                  )}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    </div>
+  );
+};
