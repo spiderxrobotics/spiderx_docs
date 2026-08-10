@@ -88,6 +88,52 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
     });
   };
 
+  /**
+   * Selection-based formatting: Wraps highlighted text with prefix/suffix (e.g. **bold**, *italic*, <u>underline</u>)
+   */
+  const applySelectionFormatting = (
+    inputId: string,
+    prefix: string,
+    suffix: string,
+    fallbackText: string,
+    currentValue: string,
+    onUpdate: (newValue: string) => void
+  ) => {
+    const inputEl = document.getElementById(inputId) as HTMLTextAreaElement | HTMLInputElement | null;
+
+    if (inputEl && typeof inputEl.selectionStart === 'number' && typeof inputEl.selectionEnd === 'number') {
+      const start = inputEl.selectionStart;
+      const end = inputEl.selectionEnd;
+      const selected = currentValue.substring(start, end);
+
+      if (selected.length > 0) {
+        // User highlighted text! Wrap the selected text.
+        const wrapped = `${prefix}${selected}${suffix}`;
+        const newText = currentValue.substring(0, start) + wrapped + currentValue.substring(end);
+        onUpdate(newText);
+
+        // Preserve focus & cursor selection over wrapped text
+        setTimeout(() => {
+          inputEl.focus();
+          inputEl.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+        }, 10);
+      } else {
+        // No text highlighted: insert fallback text at cursor
+        const inserted = `${prefix}${fallbackText}${suffix}`;
+        const newText = currentValue.substring(0, start) + inserted + currentValue.substring(start);
+        onUpdate(newText);
+
+        setTimeout(() => {
+          inputEl.focus();
+          inputEl.setSelectionRange(start + prefix.length, start + prefix.length + fallbackText.length);
+        }, 10);
+      }
+    } else {
+      // Fallback if element is not in DOM
+      onUpdate(currentValue ? `${currentValue} ${prefix}${fallbackText}${suffix}` : `${prefix}${fallbackText}${suffix}`);
+    }
+  };
+
   const updateRecipient = (updates: Partial<DocumentData['recipient']>) => {
     onChange({
       ...document,
@@ -645,11 +691,28 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
 
             {/* Recipient Information Form */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                👤 Recipient Address Details
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  👤 Recipient Address Details
+                </h4>
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
+                  <input
+                    type="checkbox"
+                    checked={document.recipient.showRecipient ?? true}
+                    onChange={(e) => updateRecipient({ showRecipient: e.target.checked })}
+                    className="accent-[#7f469b] w-3.5 h-3.5"
+                  />
+                  <span className="text-foreground font-semibold">Show Recipient Section</span>
+                </label>
+              </div>
 
-              <div className="space-y-3 text-xs">
+              {!(document.recipient.showRecipient ?? true) && (
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[11px] text-amber-700 dark:text-amber-300">
+                  💡 Recipient &quot;To,&quot; section is hidden. Ideal for Board Resolutions, Internal Memos & Certificates.
+                </div>
+              )}
+
+              <div className={`space-y-3 text-xs ${(document.recipient.showRecipient ?? true) ? '' : 'opacity-50 pointer-events-none'}`}>
                 <div>
                   <label className="text-muted-foreground mb-1 block">Full Name</label>
                   <Input
@@ -924,11 +987,90 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               )}
             </div>
 
-            {/* Subject Line Control */}
+            {/* Document Headings & Corporate Preamble */}
+            <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                🏛️ Document Headings & Corporate Info
+              </h4>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="text-muted-foreground mb-1 block">CIN / Registration No. (Top-Left)</label>
+                  <Input
+                    type="text"
+                    value={document.body.docHeaderCin || ''}
+                    onChange={(e) => updateBody({ docHeaderCin: e.target.value })}
+                    placeholder="e.g. CIN: U72100TN2026PTC195120"
+                    className="font-mono bg-background border-input rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground mb-1 block">Company Address / Reg Office (Top-Left)</label>
+                  <Input
+                    type="text"
+                    value={document.body.docHeaderAddress || ''}
+                    onChange={(e) => updateBody({ docHeaderAddress: e.target.value })}
+                    placeholder="e.g. 56, ROJA STREET BHARATHIYAR NAGAR..."
+                    className="bg-background border-input rounded-md"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground font-semibold">Main Document Title</span>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={document.body.showMainHeading ?? false}
+                        onChange={(e) => updateBody({ showMainHeading: e.target.checked })}
+                        className="accent-[#7f469b] w-3 h-3"
+                      />
+                      <span className="text-muted-foreground">Show</span>
+                    </label>
+                  </div>
+                  {document.body.showMainHeading && (
+                    <Input
+                      type="text"
+                      value={document.body.mainHeading || ''}
+                      onChange={(e) => updateBody({ mainHeading: e.target.value })}
+                      placeholder="e.g. BOARD RESOLUTION"
+                      className="bg-background border-input rounded-md font-bold text-center"
+                    />
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground font-semibold">Sub-Heading / Preamble Notice</span>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={document.body.showSubHeading ?? false}
+                        onChange={(e) => updateBody({ showSubHeading: e.target.checked })}
+                        className="accent-[#7f469b] w-3 h-3"
+                      />
+                      <span className="text-muted-foreground">Show</span>
+                    </label>
+                  </div>
+                  {document.body.showSubHeading && (
+                    <textarea
+                      value={document.body.subHeading || ''}
+                      onChange={(e) => updateBody({ subHeading: e.target.value })}
+                      placeholder="e.g. CERTIFIED TRUE COPY OF THE RESOLUTION PASSED AT THE MEETING..."
+                      rows={3}
+                      className="w-full bg-background border border-input rounded-md p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] resize-y"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Subject Line & Style Control */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  📝 Subject Heading
+                  📝 Subject Heading & Style
                 </h4>
                 <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                   <input
@@ -937,18 +1079,59 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     onChange={(e) => updateBody({ showSubject: e.target.checked })}
                     className="accent-[#7f469b] w-3.5 h-3.5"
                   />
-                  <span className="text-foreground">Show Subject</span>
+                  <span className="text-foreground font-semibold">Show Subject</span>
                 </label>
               </div>
 
               {document.body.showSubject && (
-                <textarea
-                  value={document.body.subject}
-                  onChange={(e) => updateBody({ subject: e.target.value })}
-                  placeholder="Subject line text..."
-                  rows={2}
-                  className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-none"
-                />
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-muted-foreground mb-1 block font-medium">Heading Style Format</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => updateBody({ subjectStyle: 'boxed' })}
+                        className={`py-1.5 px-2 rounded-md text-[11px] font-semibold transition ${
+                          (document.body.subjectStyle || 'boxed') === 'boxed'
+                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                            : 'bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Boxed Badge
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateBody({ subjectStyle: 'centered-header' })}
+                        className={`py-1.5 px-2 rounded-md text-[11px] font-semibold transition ${
+                          document.body.subjectStyle === 'centered-header'
+                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                            : 'bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Centered Title
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateBody({ subjectStyle: 'plain' })}
+                        className={`py-1.5 px-2 rounded-md text-[11px] font-semibold transition ${
+                          document.body.subjectStyle === 'plain'
+                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                            : 'bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Plain Left
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={document.body.subject}
+                    onChange={(e) => updateBody({ subject: e.target.value })}
+                    placeholder="Subject line text or resolution title..."
+                    rows={2}
+                    className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-none"
+                  />
+                </div>
               )}
             </div>
 
@@ -967,24 +1150,76 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {document.body.paragraphs.map((para, idx) => (
-                  <div key={idx} className="space-y-1">
+                  <div key={idx} className="space-y-1.5 bg-background/50 border border-border p-2.5 rounded-md">
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>Paragraph {idx + 1}</span>
-                      {document.body.paragraphs.length > 1 && (
+                      <span className="font-semibold text-foreground">Paragraph {idx + 1}</span>
+                      <div className="flex items-center gap-1">
+                        {/* Inline Formatting Helper Buttons */}
                         <button
                           type="button"
-                          onClick={() =>
-                            updateBody({
-                              paragraphs: document.body.paragraphs.filter((_, i) => i !== idx),
-                            })
-                          }
-                          className="text-destructive hover:underline"
+                          title="Add Bold Text"
+                          onClick={() => {
+                            const updated = [...document.body.paragraphs];
+                            updated[idx] = updated[idx] ? `${updated[idx]} **bold text**` : '**bold text**';
+                            updateBody({ paragraphs: updated });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
                         >
-                          Delete
+                          B
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          title="Add Italic Text"
+                          onClick={() => {
+                            const updated = [...document.body.paragraphs];
+                            updated[idx] = updated[idx] ? `${updated[idx]} *italic text*` : '*italic text*';
+                            updateBody({ paragraphs: updated });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          title="Add Underline Text"
+                          onClick={() => {
+                            const updated = [...document.body.paragraphs];
+                            updated[idx] = updated[idx] ? `${updated[idx]} <u>underlined text</u>` : '<u>underlined text</u>';
+                            updateBody({ paragraphs: updated });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          U
+                        </button>
+                        <button
+                          type="button"
+                          title="Make Subheading"
+                          onClick={() => {
+                            const updated = [...document.body.paragraphs];
+                            const current = updated[idx] || '';
+                            updated[idx] = current.startsWith('## ') ? current.slice(3) : `## ${current}`;
+                            updateBody({ paragraphs: updated });
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-semibold bg-[#7f469b]/10 text-[#7f469b] dark:text-[#a862c8] hover:bg-[#7f469b]/20 rounded"
+                        >
+                          + Subheading
+                        </button>
+                        {document.body.paragraphs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateBody({
+                                paragraphs: document.body.paragraphs.filter((_, i) => i !== idx),
+                              })
+                            }
+                            className="text-destructive hover:underline text-[10px] ml-1"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <textarea
                       value={para}
@@ -993,6 +1228,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                         updated[idx] = e.target.value;
                         updateBody({ paragraphs: updated });
                       }}
+                      placeholder="Enter paragraph text (Supports **bold**, *italic*, <u>underline</u>, or '## Subheading')..."
                       rows={3}
                       className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-y"
                     />
@@ -1001,11 +1237,11 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               </div>
             </div>
 
-            {/* Bullet Points Control */}
+            {/* Bullet Points / Numbered List Control */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  🔹 Bullet Points Block
+                  🔹 Bullet / Numbered List Block
                 </h4>
                 <label className="flex items-center gap-1.5 cursor-pointer text-xs">
                   <input
@@ -1014,26 +1250,54 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     onChange={(e) => updateBody({ showBulletPoints: e.target.checked })}
                     className="accent-[#7f469b] w-3.5 h-3.5"
                   />
-                  <span className="text-foreground">Show Bullets</span>
+                  <span className="text-foreground font-semibold">Show List</span>
                 </label>
               </div>
 
               {document.body.showBulletPoints && (
                 <div className="space-y-3 text-xs">
                   <div>
-                    <label className="text-muted-foreground mb-1 block">Bullet Section Heading</label>
+                    <label className="text-muted-foreground mb-1 block font-medium">List Numbering / Style</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateBody({ listStyle: 'disc' })}
+                        className={`py-1.5 px-2 rounded-md text-xs font-semibold ${
+                          (document.body.listStyle || 'disc') === 'disc'
+                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        Bullet Points (•)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateBody({ listStyle: 'decimal' })}
+                        className={`py-1.5 px-2 rounded-md text-xs font-semibold ${
+                          document.body.listStyle === 'decimal'
+                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        Numbered List (1, 2, 3...)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground mb-1 block">List Section Heading (Optional)</label>
                     <Input
                       type="text"
                       value={document.body.bulletTitle || ''}
                       onChange={(e) => updateBody({ bulletTitle: e.target.value })}
-                      placeholder="Key Deliverables:"
+                      placeholder="e.g. Key Provisions or Authorized Powers:"
                       className="bg-background border-input rounded-md"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Bullet Items</span>
+                      <span className="text-muted-foreground">List Items</span>
                       <button
                         type="button"
                         onClick={() =>
@@ -1163,18 +1427,64 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               )}
             </div>
 
-            {/* Closing Salutation */}
+            {/* Closing Salutation & Footer Date/Place Metadata */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                🤝 Closing Salutation
+                🤝 Closing Salutation & Bottom Footer Meta
               </h4>
-              <Input
-                type="text"
-                value={document.body.closingSalutation}
-                onChange={(e) => updateBody({ closingSalutation: e.target.value })}
-                placeholder="Sincerely,"
-                className="bg-background border-input rounded-md"
-              />
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="text-muted-foreground mb-1 block">Closing Salutation Text</label>
+                  <Input
+                    type="text"
+                    value={document.body.closingSalutation}
+                    onChange={(e) => updateBody({ closingSalutation: e.target.value })}
+                    placeholder="e.g. CERTIFIED TRUE COPY or Sincerely,"
+                    className="bg-background border-input rounded-md font-semibold"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground font-semibold">Date & Place Footer (Bottom-Left)</span>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={document.body.showPlaceDate ?? false}
+                        onChange={(e) => updateBody({ showPlaceDate: e.target.checked })}
+                        className="accent-[#7f469b] w-3 h-3"
+                      />
+                      <span className="text-muted-foreground">Show</span>
+                    </label>
+                  </div>
+
+                  {document.body.showPlaceDate && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <label className="text-muted-foreground mb-1 block">Date Line</label>
+                        <Input
+                          type="text"
+                          value={document.body.dateTextFooter || ''}
+                          onChange={(e) => updateBody({ dateTextFooter: e.target.value })}
+                          placeholder="Date: AUGUST 09, 2026"
+                          className="bg-background border-input rounded-md"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-muted-foreground mb-1 block">Place Line</label>
+                        <Input
+                          type="text"
+                          value={document.body.placeLocation || ''}
+                          onChange={(e) => updateBody({ placeLocation: e.target.value })}
+                          placeholder="Place: MADURAI"
+                          className="bg-background border-input rounded-md"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1211,6 +1521,17 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                 >
                   2 Directors (Dual)
                 </button>
+              </div>
+
+              <div>
+                <label className="text-muted-foreground mb-1 block text-xs">Header Text Above Signatures</label>
+                <Input
+                  type="text"
+                  value={document.signatory.headerText ?? 'For and on behalf of'}
+                  onChange={(e) => updateSignatory({ headerText: e.target.value })}
+                  placeholder="For and on behalf of"
+                  className="bg-background border-input rounded-md text-xs"
+                />
               </div>
 
               {document.signatory.mode === 'dual' && (
@@ -1257,7 +1578,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     type="text"
                     value={document.signatory.name}
                     onChange={(e) => updateSignatory({ name: e.target.value })}
-                    placeholder="Alexander Mercer"
+                    placeholder="Karuppanakumar JOTHIVENKATESH"
                     className="bg-background border-input rounded-md"
                   />
                 </div>
@@ -1268,7 +1589,18 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     type="text"
                     value={document.signatory.designation}
                     onChange={(e) => updateSignatory({ designation: e.target.value })}
-                    placeholder="Managing Director & CEO"
+                    placeholder="Director & Shareholder"
+                    className="bg-background border-input rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-muted-foreground mb-1 block">DIN (Director Identification Number)</label>
+                  <Input
+                    type="text"
+                    value={document.signatory.din || ''}
+                    onChange={(e) => updateSignatory({ din: e.target.value })}
+                    placeholder="DIN: 11816122"
                     className="bg-background border-input rounded-md"
                   />
                 </div>
@@ -1279,7 +1611,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     type="text"
                     value={document.signatory.companyName}
                     onChange={(e) => updateSignatory({ companyName: e.target.value })}
-                    placeholder="SpiderX Robotics Pvt. Ltd."
+                    placeholder="SPIDERX ROBOTICS PRIVATE LIMITED"
                     className="bg-background border-input rounded-md"
                   />
                 </div>
@@ -1381,7 +1713,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                       type="text"
                       value={document.signatory.director2Name || ''}
                       onChange={(e) => updateSignatory({ director2Name: e.target.value })}
-                      placeholder="Marcus Sterling"
+                      placeholder="Suresh Pandian Sankaranarayanan"
                       className="bg-background border-input rounded-md"
                     />
                   </div>
@@ -1392,7 +1724,18 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                       type="text"
                       value={document.signatory.director2Designation || ''}
                       onChange={(e) => updateSignatory({ director2Designation: e.target.value })}
-                      placeholder="Executive Director & CTO"
+                      placeholder="Director & Shareholder"
+                      className="bg-background border-input rounded-md"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground mb-1 block">DIN (Director Identification Number)</label>
+                    <Input
+                      type="text"
+                      value={document.signatory.director2Din || ''}
+                      onChange={(e) => updateSignatory({ director2Din: e.target.value })}
+                      placeholder="DIN: 11816121"
                       className="bg-background border-input rounded-md"
                     />
                   </div>
@@ -1403,7 +1746,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                       type="text"
                       value={document.signatory.director2CompanyName || ''}
                       onChange={(e) => updateSignatory({ director2CompanyName: e.target.value })}
-                      placeholder="SpiderX Robotics Pvt. Ltd."
+                      placeholder="SPIDERX ROBOTICS PRIVATE LIMITED"
                       className="bg-background border-input rounded-md"
                     />
                   </div>

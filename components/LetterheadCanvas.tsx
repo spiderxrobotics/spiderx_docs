@@ -8,6 +8,79 @@ interface LetterheadCanvasProps {
   zoomScale: number;
 }
 
+/**
+ * Renders inline markdown tokens (**bold**, *italic*, <u>underline</u>)
+ */
+const renderInlineFormatting = (text: string) => {
+  if (!text) return null;
+  const tokens = text.split(/(\*\*.*?\*\*|\*.*?\*|<u>.*?<\/u>)/g);
+
+  return tokens.map((token, i) => {
+    if (token.startsWith('**') && token.endsWith('**')) {
+      return (
+        <strong key={i} className="font-extrabold text-slate-900">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (token.startsWith('*') && token.endsWith('*')) {
+      return (
+        <em key={i} className="italic">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    if (token.startsWith('<u>') && token.endsWith('</u>')) {
+      return (
+        <u key={i} className="underline decoration-slate-800 font-semibold">
+          {token.slice(3, -4)}
+        </u>
+      );
+    }
+    return token;
+  });
+};
+
+/**
+ * Renders block elements (Section Headings #, Subheadings ##, Minor Subheadings ###)
+ * and formatted paragraphs.
+ */
+const renderFormattedContent = (content: string, keyPrefix: string = 'text') => {
+  if (!content) return null;
+
+  // Main Section Heading inside body
+  if (content.startsWith('# ')) {
+    return (
+      <h2 key={keyPrefix} className="text-sm font-extrabold text-slate-900 uppercase tracking-wide my-3 border-b-2 border-slate-800 pb-1">
+        {renderInlineFormatting(content.slice(2))}
+      </h2>
+    );
+  }
+  // Sub-heading inside body
+  if (content.startsWith('## ')) {
+    return (
+      <h3 key={keyPrefix} className="text-xs font-bold text-slate-900 uppercase tracking-tight my-2 border-b border-slate-300 pb-0.5">
+        {renderInlineFormatting(content.slice(3))}
+      </h3>
+    );
+  }
+  // Minor Sub-heading
+  if (content.startsWith('### ')) {
+    return (
+      <h4 key={keyPrefix} className="text-xs font-semibold text-slate-800 italic my-1.5">
+        {renderInlineFormatting(content.slice(4))}
+      </h4>
+    );
+  }
+
+  // Regular Paragraph with inline formatting
+  return (
+    <p key={keyPrefix} className="whitespace-pre-line text-slate-800 text-xs text-justify leading-normal">
+      {renderInlineFormatting(content)}
+    </p>
+  );
+};
+
 export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   document: doc,
   zoomScale,
@@ -53,8 +126,23 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
 
   // Helper render for Director Signatures & Company Seal
   const renderSignaturesAndSeal = () => {
+    const headerText = signatory.headerText !== undefined ? signatory.headerText : 'For and on behalf of';
+    const companyHeader = signatory.companyName || 'SPIDERX ROBOTICS PRIVATE LIMITED';
+
     return (
       <div className="pt-6 mt-auto">
+        {/* Header line above signatures */}
+        <div className="mb-4 text-left">
+          {headerText && (
+            <p className="text-xs font-semibold text-slate-700">{headerText}</p>
+          )}
+          {companyHeader && (
+            <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+              {companyHeader}
+            </p>
+          )}
+        </div>
+
         {signatory.mode === 'dual' ? (
           /* DUAL DIRECTORS MODE */
           <div
@@ -66,7 +154,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
           >
             {/* Director 1 */}
             <div className="flex-1 relative">
-              <div className="relative inline-block min-w-[200px]">
+              <div className="relative inline-block min-w-[200px] w-full">
                 {signatory.showSeal && signatory.sealImage && (
                   <div
                     className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
@@ -85,23 +173,23 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={signatory.signatureImage} alt="Dir 1 Sig" className="h-full max-h-14 object-contain" />
                     ) : (
-                      <div className="h-10 border-b border-slate-300 w-44 flex items-end">
-                        <span className="text-[10px] text-slate-400 italic">[ Director 1 Signature ]</span>
-                      </div>
+                      <div className="h-10 w-full" />
                     )}
                   </div>
                 )}
-                <div className="border-t border-slate-400 pt-1 mt-1">
+                <div className="border-t border-slate-400 pt-1.5 mt-1">
                   <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
                   <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
-                  <p className="text-[10px] text-slate-500">{signatory.companyName}</p>
+                  {signatory.din && (
+                    <p className="text-[10px] text-slate-700 font-semibold">{signatory.din}</p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Director 2 */}
-            <div className="flex-1 text-right relative">
-              <div className="relative inline-block min-w-[200px] text-right">
+            <div className="flex-1 relative">
+              <div className="relative inline-block min-w-[200px] w-full">
                 {signatory.showDirector2Seal && signatory.director2SealImage && (
                   <div
                     className="absolute -top-10 -right-6 pointer-events-none z-10 select-none"
@@ -115,21 +203,21 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   </div>
                 )}
                 {signatory.showDirector2Signature && (
-                  <div className="h-14 mb-1 flex items-end justify-end">
+                  <div className="h-14 mb-1 flex items-end">
                     {signatory.director2SignatureImage ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={signatory.director2SignatureImage} alt="Dir 2 Sig" className="h-full max-h-14 object-contain" />
                     ) : (
-                      <div className="h-10 border-b border-slate-300 w-44 flex items-end justify-end">
-                        <span className="text-[10px] text-slate-400 italic">[ Director 2 Signature ]</span>
-                      </div>
+                      <div className="h-10 w-full" />
                     )}
                   </div>
                 )}
-                <div className="border-t border-slate-400 pt-1 mt-1">
+                <div className="border-t border-slate-400 pt-1.5 mt-1">
                   <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.director2Name || 'Director Name'}</p>
                   <p className="text-[11px] text-slate-600 font-medium">{signatory.director2Designation || 'Director'}</p>
-                  <p className="text-[10px] text-slate-500">{signatory.director2CompanyName || signatory.companyName}</p>
+                  {signatory.director2Din && (
+                    <p className="text-[10px] text-slate-700 font-semibold">{signatory.director2Din}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -164,18 +252,26 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={signatory.signatureImage} alt="Sig" className="h-full max-h-16 object-contain" />
                   ) : (
-                    <div className="h-10 border-b border-slate-300 w-48 flex items-end">
-                      <span className="text-[10px] text-slate-400 italic">[ Authorized Signature ]</span>
-                    </div>
+                    <div className="h-12 w-full" />
                   )}
                 </div>
               )}
-              <div className="border-t border-slate-400 pt-1 mt-1">
+              <div className="border-t border-slate-400 pt-1.5 mt-1">
                 <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
                 <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
-                <p className="text-[10px] text-slate-500">{signatory.companyName}</p>
+                {signatory.din && (
+                  <p className="text-[10px] text-slate-700 font-semibold">{signatory.din}</p>
+                )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Date & Place Meta Footer (Bottom-Left) */}
+        {body.showPlaceDate && (body.dateTextFooter || body.placeLocation) && (
+          <div className="mt-4 text-xs font-semibold text-slate-800 space-y-0.5">
+            {body.dateTextFooter && <p>{body.dateTextFooter}</p>}
+            {body.placeLocation && <p>{body.placeLocation}</p>}
           </div>
         )}
       </div>
@@ -186,7 +282,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
     <div className="w-full flex justify-center py-4 no-print-padding select-none">
       {/* Zoom Container Wrapper */}
       <div
-        className="transition-transform origin-top duration-200 flex flex-col gap-8 items-center"
+        className="a4-zoom-wrapper transition-transform origin-top duration-200 flex flex-col gap-8 items-center print:gap-0 print:transform-none"
         style={{
           transform: `scale(${zoomScale})`,
           width: '210mm',
@@ -285,75 +381,123 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                 </div>
               </div>
 
-              {/* Recipient Address */}
-              <div className="mb-6 space-y-0.5">
-                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">To,</p>
-                {recipient.name && (
-                  <p className="font-bold text-slate-900 text-sm">
-                    {recipient.name}
-                  </p>
-                )}
-                {recipient.designation && (
-                  <p className="text-xs text-slate-700 font-medium">
-                    {recipient.designation}
-                  </p>
-                )}
-                {recipient.organization && (
-                  <p className="text-xs text-slate-800 font-semibold">
-                    {recipient.organization}
-                  </p>
-                )}
-                {recipient.addressLine1 && (
-                  <p className="text-xs text-slate-600">
-                    {recipient.addressLine1}
-                  </p>
-                )}
-                {recipient.cityStateZip && (
-                  <p className="text-xs text-slate-600">
-                    {recipient.cityStateZip}
-                  </p>
-                )}
-                {recipient.email && (
-                  <p className="text-xs text-slate-500 font-mono pt-0.5">
-                    Email: {recipient.email}
-                  </p>
-                )}
-              </div>
+              {/* Top Document Header Metadata (e.g. CIN, Company Address) */}
+              {(body.docHeaderCin || body.docHeaderAddress) && (
+                <div className="mb-4 text-xs font-semibold text-slate-700 space-y-0.5 pb-2 border-b border-slate-200/80">
+                  {body.docHeaderCin && <p>{body.docHeaderCin}</p>}
+                  {body.docHeaderAddress && <p className="text-[11px] text-slate-600">{body.docHeaderAddress}</p>}
+                </div>
+              )}
 
-              {/* Subject Line */}
-              {body.showSubject && body.subject && (
-                <div className="mb-6 p-3 bg-[#7f469b]/5 border-l-4 rounded-r-md border-[#7f469b]">
-                  <p className="font-bold text-slate-900 tracking-wide uppercase text-xs">
-                    <span className="text-[#7f469b] font-extrabold mr-2">SUBJECT:</span>
-                    {body.subject}
+              {/* Main Document Title (e.g. BOARD RESOLUTION) */}
+              {body.showMainHeading && body.mainHeading && (
+                <div className="text-center my-3">
+                  <h1 className="text-base font-extrabold text-slate-900 uppercase tracking-wide">
+                    {body.mainHeading}
+                  </h1>
+                </div>
+              )}
+
+              {/* Sub-heading / Resolution Preamble */}
+              {body.showSubHeading && body.subHeading && (
+                <div className="text-center my-3 px-1">
+                  <p className="text-xs font-semibold text-slate-800 leading-relaxed uppercase">
+                    {body.subHeading}
                   </p>
                 </div>
               )}
 
-              {/* Page 1 Body Paragraphs */}
-              <div className="space-y-3 text-slate-800 text-justify leading-normal">
-                {body.paragraphs.map((p, idx) => (
-                  <p key={idx} className="whitespace-pre-line">
-                    {p}
-                  </p>
-                ))}
+              {/* Recipient Address */}
+              {(recipient.showRecipient ?? true) && (
+                <div className="mb-6 space-y-0.5">
+                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">To,</p>
+                  {recipient.name && (
+                    <p className="font-bold text-slate-900 text-sm">
+                      {recipient.name}
+                    </p>
+                  )}
+                  {recipient.designation && (
+                    <p className="text-xs text-slate-700 font-medium">
+                      {recipient.designation}
+                    </p>
+                  )}
+                  {recipient.organization && (
+                    <p className="text-xs text-slate-800 font-semibold">
+                      {recipient.organization}
+                    </p>
+                  )}
+                  {recipient.addressLine1 && (
+                    <p className="text-xs text-slate-600">
+                      {recipient.addressLine1}
+                    </p>
+                  )}
+                  {recipient.cityStateZip && (
+                    <p className="text-xs text-slate-600">
+                      {recipient.cityStateZip}
+                    </p>
+                  )}
+                  {recipient.email && (
+                    <p className="text-xs text-slate-500 font-mono pt-0.5">
+                      Email: {recipient.email}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Subject Line / Resolution Heading */}
+              {body.showSubject && body.subject && (
+                body.subjectStyle === 'centered-header' ? (
+                  <div className="my-4 text-center">
+                    <h2 className="font-bold text-slate-900 text-sm tracking-tight inline-block pb-0.5 border-b-2 border-slate-900/60">
+                      {body.subject}
+                    </h2>
+                  </div>
+                ) : body.subjectStyle === 'plain' ? (
+                  <div className="my-3">
+                    <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wide">
+                      {body.subject}
+                    </h2>
+                  </div>
+                ) : (
+                  <div className="mb-6 p-3 bg-[#7f469b]/5 border-l-4 rounded-r-md border-[#7f469b]">
+                    <p className="font-bold text-slate-900 tracking-wide uppercase text-xs">
+                      <span className="text-[#7f469b] font-extrabold mr-2">SUBJECT:</span>
+                      {body.subject}
+                    </p>
+                  </div>
+                )
+              )}
+
+              {/* Page 1 Body Paragraphs & Sub-headings */}
+              <div className="space-y-3 text-slate-800 leading-normal">
+                {body.paragraphs.map((p, idx) => renderFormattedContent(p, `p1-${idx}`))}
               </div>
 
-              {/* Bullet Points / Table on Page 1 if Single Page */}
+              {/* Bullet / Numbered Points on Page 1 if Single Page */}
               {!isMultiPage && body.showBulletPoints && body.bulletPoints.length > 0 && (
                 <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
                   {body.bulletTitle && (
                     <p className="font-semibold text-xs text-slate-900 mb-2">
-                      {body.bulletTitle}
+                      {renderInlineFormatting(body.bulletTitle)}
                     </p>
                   )}
-                  <ul className="list-disc list-inside space-y-1 text-xs text-slate-700">
-                    {body.bulletPoints.map((point, idx) => (
-                      <li key={idx}>
-                        <span className="text-slate-800 font-medium">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {body.listStyle === 'decimal' ? (
+                    <ol className="list-decimal list-inside space-y-1.5 text-xs text-slate-800 leading-normal">
+                      {body.bulletPoints.map((point, idx) => (
+                        <li key={idx}>
+                          <span className="text-slate-800">{renderInlineFormatting(point)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-800 leading-normal">
+                      {body.bulletPoints.map((point, idx) => (
+                        <li key={idx}>
+                          <span className="text-slate-800">{renderInlineFormatting(point)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
 
@@ -500,14 +644,10 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                       </span>
                     </div>
 
-                    {/* Page Specific Paragraphs */}
+                    {/* Page Specific Paragraphs & Headings */}
                     {pg.paragraphs.length > 0 && (
-                      <div className="space-y-3 text-slate-800 text-justify leading-normal mb-4">
-                        {pg.paragraphs.map((p, idx) => (
-                          <p key={idx} className="whitespace-pre-line">
-                            {p}
-                          </p>
-                        ))}
+                      <div className="space-y-3 text-slate-800 leading-normal mb-4">
+                        {pg.paragraphs.map((p, idx) => renderFormattedContent(p, `p${pageNum}-${idx}`))}
                       </div>
                     )}
 

@@ -68,15 +68,27 @@ const RAW_SEAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height
   </g>
 </svg>`;
 
-const RAW_SIGNATURE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="90" viewBox="0 0 260 90">
-  <path d="M 20,65 Q 40,15 55,40 T 80,30 T 110,60 T 130,25 T 160,45 T 200,20 Q 230,25 245,40" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
-  <path d="M 35,50 Q 80,75 170,55 Q 220,45 235,55" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="195" cy="22" r="2.5" fill="#0f172a"/>
+const RAW_SIGNATURE1_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="90" viewBox="0 0 280 90">
+  <g fill="none" stroke="#0f172a" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 20,45 Q 30,10 42,40 Q 50,20 58,42 T 72,25 Q 85,60 98,35 T 120,40 Q 135,20 150,45 T 180,25" stroke-width="2.5"/>
+    <path d="M 25,58 Q 90,68 180,50 Q 215,42 230,52" stroke-width="2"/>
+    <text x="140" y="70" font-family="'Segoe Script', 'Brush Script MT', cursive, sans-serif" font-size="14" fill="#0f172a" font-weight="bold" stroke="none">13/07/2026</text>
+  </g>
+</svg>`;
+
+const RAW_SIGNATURE2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="90" viewBox="0 0 280 90">
+  <g fill="none" stroke="#0f172a" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 20,35 Q 35,15 45,30 Q 60,15 70,35 Q 85,20 100,45 Q 115,15 130,35 T 160,25 Q 175,40 190,20" stroke-width="2.5"/>
+    <path d="M 20,55 Q 80,65 185,48 Q 210,40 225,50" stroke-width="2"/>
+    <text x="140" y="70" font-family="'Segoe Script', 'Brush Script MT', cursive, sans-serif" font-size="14" fill="#0f172a" font-weight="bold" stroke="none">13/07/2026</text>
+  </g>
 </svg>`;
 
 export const DEFAULT_SPIDERX_LETTERHEAD_BG = '/letter_head.png';
 export const SAMPLE_SEAL_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(RAW_SEAL_SVG)}`;
-export const SAMPLE_SIGNATURE_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(RAW_SIGNATURE_SVG)}`;
+export const SAMPLE_SIGNATURE_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(RAW_SIGNATURE1_SVG)}`;
+export const SAMPLE_SIGNATURE1_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(RAW_SIGNATURE1_SVG)}`;
+export const SAMPLE_SIGNATURE2_SVG = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(RAW_SIGNATURE2_SVG)}`;
 
 export const DEFAULT_DOCUMENT: DocumentData = {
   id: 'doc-default-01',
@@ -84,6 +96,7 @@ export const DEFAULT_DOCUMENT: DocumentData = {
   refNumber: 'REF: SX/2026/08/104',
   date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
   recipient: {
+    showRecipient: true,
     name: 'Dr. Evelyn Vance',
     designation: 'Head of Autonomous Systems',
     organization: 'Global AI & Robotics Consortium',
@@ -97,7 +110,7 @@ export const DEFAULT_DOCUMENT: DocumentData = {
     subject: 'LETTER OF AUTHORIZATION & PROJECT COLLABORATION',
     showSubject: true,
     paragraphs: [
-      'This letter serves as formal authorization confirming that SpiderX Robotics Pvt. Ltd. hereby grants full authorization to Dr. Evelyn Vance and the team at Global AI & Robotics Consortium to conduct joint research on autonomous robotic navigation platforms under Project Code SX-NAV-2026.',
+      'This letter serves as formal authorization confirming that SPIDERX ROBOTICS PRIVATE LIMITED hereby grants full authorization to Dr. Evelyn Vance and the team at Global AI & Robotics Consortium to conduct joint research on autonomous robotic navigation platforms under Project Code SX-NAV-2026.',
       'All technical specifications, algorithmic models, and hardware blueprints shared during this collaboration remain protected under our bilateral Non-Disclosure Agreement. Authorized personnel are permitted access to SpiderX Test Facility Lab 4 for experimental validation.',
       'Should you require any further documentation or security clearance verification, please do not hesitate to contact the Office of the Executive Director.',
     ],
@@ -125,24 +138,27 @@ export const DEFAULT_DOCUMENT: DocumentData = {
     },
   },
   signatory: {
-    mode: 'single', // 'single' (1 Director) or 'dual' (2 Directors)
-    name: 'Alexander Mercer',
-    designation: 'Managing Director & CEO',
-    companyName: 'SpiderX Robotics Pvt. Ltd.',
-    signatureImage: SAMPLE_SIGNATURE_SVG,
+    mode: 'dual', // Dual Directors by default
+    headerText: 'For and on behalf of',
+    companyName: 'SPIDERX ROBOTICS PRIVATE LIMITED',
+    name: 'Karuppanakumar JOTHIVENKATESH',
+    designation: 'Director & Shareholder',
+    din: 'DIN: 11816122',
+    signatureImage: SAMPLE_SIGNATURE1_SVG,
     showSignature: true,
     sealImage: SAMPLE_SEAL_SVG,
-    showSeal: true,
+    showSeal: false,
     sealScale: 1.0,
     sealOpacity: 0.9,
     sealPosition: 'behind-signature',
-    alignment: 'right',
+    alignment: 'left',
 
     // Director 2 Defaults
-    director2Name: 'Marcus Sterling',
-    director2Designation: 'Executive Director & CTO',
-    director2CompanyName: 'SpiderX Robotics Pvt. Ltd.',
-    director2SignatureImage: SAMPLE_SIGNATURE_SVG,
+    director2Name: 'Suresh Pandian Sankaranarayanan',
+    director2Designation: 'Director & Shareholder',
+    director2Din: 'DIN: 11816121',
+    director2CompanyName: 'SPIDERX ROBOTICS PRIVATE LIMITED',
+    director2SignatureImage: SAMPLE_SIGNATURE2_SVG,
     showDirector2Signature: true,
     director2SealImage: null,
     showDirector2Seal: false,
@@ -173,25 +189,117 @@ export const PRESET_TEMPLATES: { name: string; description: string; template: Pa
     template: DEFAULT_DOCUMENT,
   },
   {
+    name: 'Official Board Resolution',
+    description: 'Corporate Board Resolution template without recipient block, for bank account operations and director authorizations.',
+    template: {
+      title: 'BOARD RESOLUTION FOR BANK ACCOUNT OPERATION',
+      refNumber: '',
+      date: 'AUGUST 09, 2026',
+      recipient: {
+        showRecipient: false, // Hides recipient section for Board Resolutions
+        name: '',
+        designation: '',
+        organization: '',
+        addressLine1: '',
+        addressLine2: '',
+        cityStateZip: '',
+        email: '',
+        phone: '',
+      },
+      body: {
+        docHeaderCin: 'CIN: U72100TN2026PTC195120',
+        docHeaderAddress: '56, ROJA STREET BHARATHIYAR NAGAR, ALAGAPPAN NAGAR, MADURAI, TAMIL NADU, 625003',
+        showMainHeading: true,
+        mainHeading: 'BOARD RESOLUTION',
+        showSubHeading: true,
+        subHeading: 'CERTIFIED TRUE COPY OF THE RESOLUTION PASSED AT THE MEETING OF THE BOARD OF DIRECTORS OF SPIDERX ROBOTICS PRIVATE LIMITED HELD ON AUGUST 09, 2026 AT 10:00 A.M. AT 56, ROJA STREET, BHARATHIYAR NAGAR, ALAGAPPAN NAGAR, MADURAI, TAMIL NADU, 625003.',
+        subject: 'Board Resolution for Authorising Directors to Operate the Bank Account',
+        showSubject: true,
+        subjectStyle: 'centered-header',
+        paragraphs: [
+          '**"RESOLVED THAT** pursuant to the provisions of the Companies Act, 2013 and the Articles of Association of the Company, the consent of the Board be and is hereby accorded to open and maintain a Current Account in the name of **SPIDERX ROBOTICS PRIVATE LIMITED** with **CANARA BANK, MADURAI TVS NAGAR**.',
+          '**RESOLVED FURTHER THAT** Mr. **Karuppanakumar JOTHIVENKATESH**, Director (DIN: **11816122**) and Mr. **Suresh Pandian Sankaranarayan**, Director (DIN: **11816121**) be and are hereby **jointly and severally authorised, with either director acting singly**, to:',
+          '**RESOLVED FURTHER THAT** the Bank be and is hereby authorised to honour all cheques, bills of exchange, promissory notes, payment instructions and other instruments signed in accordance with this resolution and to act upon any instructions given by either of the above authorised signatories acting singly.',
+          '**RESOLVED FURTHER THAT** a certified true copy of this resolution be provided to the Bank under the signature of any Director or the Company Secretary (if appointed), who is hereby authorised to certify the same.',
+        ],
+        showBulletPoints: true,
+        bulletTitle: '',
+        listStyle: 'decimal',
+        bulletPoints: [
+          'Sign and execute all account opening forms, declarations, undertakings and other documents required by the Bank.',
+          "Operate the Company's bank account by signing cheques, payment instructions, withdrawal forms, and other banking instruments.",
+          'Issue instructions relating to fund transfers, NEFT, RTGS, IMPS, UPI, internet banking, mobile banking, and other electronic banking services.',
+          "Deposit cheques, cash, drafts and other negotiable instruments into the Company's account.",
+          'Apply for and operate debit cards, cheque books, internet banking facilities and any other banking products or services offered by the Bank.',
+          'Execute indemnities, declarations, agreements and all other documents required by the Bank in connection with the operation of the account.',
+          "Do all such acts, deeds and things as may be necessary for the effective operation and maintenance of the Company's banking relationship.",
+        ],
+        showKeyValuePairs: false,
+        keyValuePairs: [],
+        closingSalutation: 'CERTIFIED TRUE COPY',
+        showPlaceDate: true,
+        dateTextFooter: 'Date: AUGUST 09, 2026',
+        placeLocation: 'Place: MADURAI',
+      },
+      signatory: {
+        mode: 'dual',
+        headerText: 'For SPIDERX ROBOTICS PRIVATE LIMITED',
+        companyName: '',
+        name: 'Karuppanakumar JOTHIVENKATESH',
+        designation: 'Director',
+        din: 'DIN: 11816122',
+        signatureImage: SAMPLE_SIGNATURE1_SVG,
+        showSignature: true,
+        sealImage: SAMPLE_SEAL_SVG,
+        showSeal: false,
+        sealScale: 1.0,
+        sealOpacity: 0.9,
+        sealPosition: 'behind-signature',
+        alignment: 'left',
+
+        director2Name: 'Suresh Pandian Sankaranarayan',
+        director2Designation: 'Director',
+        director2Din: 'DIN: 11816121',
+        director2CompanyName: '',
+        director2SignatureImage: SAMPLE_SIGNATURE2_SVG,
+        showDirector2Signature: true,
+        director2SealImage: null,
+        showDirector2Seal: false,
+        dualLayout: 'side-by-side',
+      },
+    },
+  },
+  {
     name: 'Executive Offer / Appointment Letter',
     description: 'Standard employment offer letter for engineering and leadership roles.',
     template: {
       title: 'Formal Offer of Employment',
       refNumber: `REF: SX/HR/${new Date().getFullYear()}/042`,
+      recipient: {
+        showRecipient: true,
+        name: 'Alex Johnson',
+        designation: 'Senior Robotics Engineer',
+        organization: 'SpiderX Robotics Pvt. Ltd.',
+        addressLine1: '789 Innovation Way',
+        addressLine2: 'Tech District',
+        cityStateZip: 'Madurai, TN 625003',
+        email: 'a.johnson@example.com',
+        phone: '+91 98765 43210',
+      },
       body: {
         subject: 'OFFER OF EMPLOYMENT - SENIOR ROBOTICS ENGINEER',
         showSubject: true,
         paragraphs: [
-          'On behalf of SpiderX Robotics Inc., I am delighted to offer you the position of Senior Robotics Engineer within our Autonomous Systems Division.',
+          'On behalf of SPIDERX ROBOTICS PRIVATE LIMITED, I am delighted to offer you the position of Senior Robotics Engineer within our Autonomous Systems Division.',
           'We were thoroughly impressed with your technical expertise during the evaluation process and believe your background in ROS2, computer vision, and embedded control systems will be invaluable to our team.',
           'Please review the attached terms of employment and return a signed copy of this offer letter by August 20, 2026 to confirm your acceptance.',
         ],
         showBulletPoints: true,
         bulletTitle: 'Summary of Compensation & Benefits:',
         bulletPoints: [
-          'Annual Base Compensation: $185,000 USD (Paid bi-weekly)',
-          'Equity Grant: 25,000 Stock Options (4-year vesting schedule with 1-year cliff)',
-          'Benefits: 100% Employer-Paid Medical, Dental, Vision & 401(k) Matching up to 5%',
+          'Annual Base Compensation: Competitive Industry Package',
+          'Equity Grant: Stock Options subject to standard vesting schedule',
+          'Benefits: Health Insurance, Professional Learning Allowance & Performance Bonus',
           'Target Start Date: September 1, 2026',
         ],
         showKeyValuePairs: false,
@@ -207,11 +315,22 @@ export const PRESET_TEMPLATES: { name: string; description: string; template: Pa
     template: {
       title: 'Commercial Hardware & Software Quotation',
       refNumber: `REF: SX/QUOTE/${new Date().getFullYear()}/889`,
+      recipient: {
+        showRecipient: true,
+        name: 'Procurement Manager',
+        designation: 'Department of Robotics',
+        organization: 'Apex Industrial Solutions',
+        addressLine1: 'Building 4, Cyber City',
+        addressLine2: '',
+        cityStateZip: 'Chennai, TN 600032',
+        email: 'procurement@apexind.com',
+        phone: '+91 44 2345 6789',
+      },
       body: {
         subject: 'QUOTATION FOR SPIDERX ROBOTIC PLATFORM (SX-V4 CORE)',
         showSubject: true,
         paragraphs: [
-          'Thank you for your interest in SpiderX Robotics platform products. Below is our formal commercial quotation for the requested hardware and enterprise software bundle.',
+          'Thank you for your interest in SPIDERX ROBOTICS PRIVATE LIMITED platform products. Below is our formal commercial quotation for the requested hardware and enterprise software bundle.',
           'All components are tested and calibrated at our central manufacturing hub prior to dispatch. Lead time for delivery is estimated at 14 business days from PO receipt.',
         ],
         showBulletPoints: false,
@@ -220,11 +339,10 @@ export const PRESET_TEMPLATES: { name: string; description: string; template: Pa
         showKeyValuePairs: true,
         tableTitle: 'Pricing Breakdown & Quotation Terms:',
         keyValuePairs: [
-          { id: 'q-1', label: 'SX-V4 Quadruped Base Chassis', value: '$34,500 USD' },
-          { id: 'q-2', label: 'LiDAR & Vision Perception Sensor Suite', value: '$12,800 USD' },
-          { id: 'q-3', label: 'SpiderX Autonomy Engine (1-Yr License)', value: '$8,500 USD' },
-          { id: 'q-4', label: 'Estimated Total Investment', value: '$55,800 USD (Excl. Local Taxes)' },
-          { id: 'q-5', label: 'Quotation Validity', value: '30 Days from Issue Date' },
+          { id: 'q-1', label: 'SX-V4 Quadruped Base Chassis', value: 'INR 2,850,000' },
+          { id: 'q-2', label: 'LiDAR & Vision Perception Sensor Suite', value: 'INR 950,000' },
+          { id: 'q-3', label: 'SpiderX Autonomy Engine (1-Yr License)', value: 'INR 650,000' },
+          { id: 'q-4', label: 'Quotation Validity', value: '30 Days from Issue Date' },
         ],
         closingSalutation: 'Respectfully submitted,',
       },

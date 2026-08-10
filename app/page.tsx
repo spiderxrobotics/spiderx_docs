@@ -27,7 +27,23 @@ export default function Home() {
     const savedDoc = localStorage.getItem('spiderx_letterhead_doc');
     if (savedDoc) {
       try {
-        setDocument(JSON.parse(savedDoc));
+        const parsed = JSON.parse(savedDoc);
+        setDocument({
+          ...DEFAULT_DOCUMENT,
+          ...parsed,
+          recipient: {
+            ...DEFAULT_DOCUMENT.recipient,
+            ...(parsed.recipient || {}),
+          },
+          body: {
+            ...DEFAULT_DOCUMENT.body,
+            ...(parsed.body || {}),
+          },
+          signatory: {
+            ...DEFAULT_DOCUMENT.signatory,
+            ...(parsed.signatory || {}),
+          },
+        });
       } catch (err) {
         console.error('Failed to parse saved document data:', err);
       }
