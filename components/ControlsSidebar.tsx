@@ -26,6 +26,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(
+  () => import('@/components/RichTextEditor').then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => <div className="h-28 bg-muted animate-pulse rounded-md" />,
+  }
+);
 
 interface ControlsSidebarProps {
   document: DocumentData;
@@ -99,7 +108,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
     currentValue: string,
     onUpdate: (newValue: string) => void
   ) => {
-    const inputEl = document.getElementById(inputId) as HTMLTextAreaElement | HTMLInputElement | null;
+    const inputEl = window.document.getElementById(inputId) as HTMLTextAreaElement | HTMLInputElement | null;
 
     if (inputEl && typeof inputEl.selectionStart === 'number' && typeof inputEl.selectionEnd === 'number') {
       const start = inputEl.selectionStart;
@@ -1054,13 +1063,69 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     </label>
                   </div>
                   {document.body.showSubHeading && (
-                    <textarea
-                      value={document.body.subHeading || ''}
-                      onChange={(e) => updateBody({ subHeading: e.target.value })}
-                      placeholder="e.g. CERTIFIED TRUE COPY OF THE RESOLUTION PASSED AT THE MEETING..."
-                      rows={3}
-                      className="w-full bg-background border border-input rounded-md p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] resize-y"
-                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Bold"
+                          onClick={() =>
+                            applySelectionFormatting(
+                              'subheading-preamble-input',
+                              '**',
+                              '**',
+                              'bold text',
+                              document.body.subHeading || '',
+                              (newVal) => updateBody({ subHeading: newVal })
+                            )
+                          }
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Italic"
+                          onClick={() =>
+                            applySelectionFormatting(
+                              'subheading-preamble-input',
+                              '*',
+                              '*',
+                              'italic text',
+                              document.body.subHeading || '',
+                              (newVal) => updateBody({ subHeading: newVal })
+                            )
+                          }
+                          className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Underline"
+                          onClick={() =>
+                            applySelectionFormatting(
+                              'subheading-preamble-input',
+                              '<u>',
+                              '</u>',
+                              'underlined text',
+                              document.body.subHeading || '',
+                              (newVal) => updateBody({ subHeading: newVal })
+                            )
+                          }
+                          className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          U
+                        </button>
+                      </div>
+                      <textarea
+                        id="subheading-preamble-input"
+                        value={document.body.subHeading || ''}
+                        onChange={(e) => updateBody({ subHeading: e.target.value })}
+                        placeholder="e.g. CERTIFIED TRUE COPY OF THE RESOLUTION PASSED AT THE MEETING..."
+                        rows={3}
+                        className="w-full bg-background border border-input rounded-md p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] resize-y"
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1124,88 +1189,90 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     </div>
                   </div>
 
-                  <textarea
-                    value={document.body.subject}
-                    onChange={(e) => updateBody({ subject: e.target.value })}
-                    placeholder="Subject line text or resolution title..."
-                    rows={2}
-                    className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-none"
-                  />
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        title="Format Highlighted Text as Bold"
+                        onClick={() =>
+                          applySelectionFormatting(
+                            'subject-heading-input',
+                            '**',
+                            '**',
+                            'bold text',
+                            document.body.subject,
+                            (newVal) => updateBody({ subject: newVal })
+                          )
+                        }
+                        className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        title="Format Highlighted Text as Italic"
+                        onClick={() =>
+                          applySelectionFormatting(
+                            'subject-heading-input',
+                            '*',
+                            '*',
+                            'italic text',
+                            document.body.subject,
+                            (newVal) => updateBody({ subject: newVal })
+                          )
+                        }
+                        className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        title="Format Highlighted Text as Underline"
+                        onClick={() =>
+                          applySelectionFormatting(
+                            'subject-heading-input',
+                            '<u>',
+                            '</u>',
+                            'underlined text',
+                            document.body.subject,
+                            (newVal) => updateBody({ subject: newVal })
+                          )
+                        }
+                        className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                      >
+                        U
+                      </button>
+                    </div>
+                    <textarea
+                      id="subject-heading-input"
+                      value={document.body.subject}
+                      onChange={(e) => updateBody({ subject: e.target.value })}
+                      placeholder="Subject line text or resolution title..."
+                      rows={2}
+                      className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Paragraphs Editor */}
+            {/* Paragraphs & Headings Content Blocks Editor */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  📄 Main Body Paragraphs
+                  📄 Main Body Content Blocks
                 </h4>
-                <button
-                  type="button"
-                  onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, ''] })}
-                  className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Paragraph
-                </button>
               </div>
 
               <div className="space-y-4">
-                {document.body.paragraphs.map((para, idx) => (
-                  <div key={idx} className="space-y-1.5 bg-background/50 border border-border p-2.5 rounded-md">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="font-semibold text-foreground">Paragraph {idx + 1}</span>
-                      <div className="flex items-center gap-1">
-                        {/* Inline Formatting Helper Buttons */}
-                        <button
-                          type="button"
-                          title="Add Bold Text"
-                          onClick={() => {
-                            const updated = [...document.body.paragraphs];
-                            updated[idx] = updated[idx] ? `${updated[idx]} **bold text**` : '**bold text**';
-                            updateBody({ paragraphs: updated });
-                          }}
-                          className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
-                        >
-                          B
-                        </button>
-                        <button
-                          type="button"
-                          title="Add Italic Text"
-                          onClick={() => {
-                            const updated = [...document.body.paragraphs];
-                            updated[idx] = updated[idx] ? `${updated[idx]} *italic text*` : '*italic text*';
-                            updateBody({ paragraphs: updated });
-                          }}
-                          className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
-                        >
-                          I
-                        </button>
-                        <button
-                          type="button"
-                          title="Add Underline Text"
-                          onClick={() => {
-                            const updated = [...document.body.paragraphs];
-                            updated[idx] = updated[idx] ? `${updated[idx]} <u>underlined text</u>` : '<u>underlined text</u>';
-                            updateBody({ paragraphs: updated });
-                          }}
-                          className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
-                        >
-                          U
-                        </button>
-                        <button
-                          type="button"
-                          title="Make Subheading"
-                          onClick={() => {
-                            const updated = [...document.body.paragraphs];
-                            const current = updated[idx] || '';
-                            updated[idx] = current.startsWith('## ') ? current.slice(3) : `## ${current}`;
-                            updateBody({ paragraphs: updated });
-                          }}
-                          className="px-1.5 py-0.5 text-[10px] font-semibold bg-[#7f469b]/10 text-[#7f469b] dark:text-[#a862c8] hover:bg-[#7f469b]/20 rounded"
-                        >
-                          + Subheading
-                        </button>
+                {document.body.paragraphs.map((para, idx) => {
+                  const isHeadingBlock = para.startsWith('<h') || para.startsWith('#');
+                  return (
+                    <div key={idx} className="space-y-2 bg-background/50 border border-border p-3 rounded-md">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          {isHeadingBlock ? '📌 Heading Block' : '📄 Paragraph Block'} {idx + 1}
+                        </span>
                         {document.body.paragraphs.length > 1 && (
                           <button
                             type="button"
@@ -1214,26 +1281,44 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                                 paragraphs: document.body.paragraphs.filter((_, i) => i !== idx),
                               })
                             }
-                            className="text-destructive hover:underline text-[10px] ml-1"
+                            className="text-destructive hover:underline text-xs font-semibold"
                           >
                             Delete
                           </button>
                         )}
                       </div>
+                      
+                      {/* Quill Rich Text Editor */}
+                      <RichTextEditor
+                        value={para}
+                        onChange={(newHtml) => {
+                          const updated = [...document.body.paragraphs];
+                          updated[idx] = newHtml;
+                          updateBody({ paragraphs: updated });
+                        }}
+                        placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
+                      />
                     </div>
-                    <textarea
-                      value={para}
-                      onChange={(e) => {
-                        const updated = [...document.body.paragraphs];
-                        updated[idx] = e.target.value;
-                        updateBody({ paragraphs: updated });
-                      }}
-                      placeholder="Enter paragraph text (Supports **bold**, *italic*, <u>underline</u>, or '## Subheading')..."
-                      rows={3}
-                      className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-y"
-                    />
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+
+              {/* Bottom Add Paragraph & Add Heading Action Buttons */}
+              <div className="pt-2 flex items-center justify-center gap-2 border-t border-border/50">
+                <button
+                  type="button"
+                  onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, ''] })}
+                  className="w-1/2 text-xs py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Paragraph
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, '<h2>Section Heading</h2>'] })}
+                  className="w-1/2 text-xs py-2 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white rounded-md flex items-center justify-center gap-1 font-semibold shadow-xs transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Heading
+                </button>
               </div>
             </div>
 
@@ -1310,8 +1395,10 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                     </div>
 
                     {document.body.bulletPoints.map((pt, idx) => (
-                      <div key={idx} className="flex gap-2">
+                      <div key={idx} className="flex items-center gap-1.5 bg-background/50 border border-border p-1.5 rounded-md">
+                        <span className="text-[10px] text-muted-foreground font-semibold px-1">{idx + 1}.</span>
                         <Input
+                          id={`bullet-input-${idx}`}
                           type="text"
                           value={pt}
                           onChange={(e) => {
@@ -1319,8 +1406,72 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                             updated[idx] = e.target.value;
                             updateBody({ bulletPoints: updated });
                           }}
-                          className="bg-background border-input flex-1 rounded-md"
+                          placeholder="Select text & click B, I, or U..."
+                          className="bg-background border-input flex-1 rounded-md text-xs font-mono"
                         />
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Bold"
+                          onClick={() => {
+                            applySelectionFormatting(
+                              `bullet-input-${idx}`,
+                              '**',
+                              '**',
+                              'bold text',
+                              pt,
+                              (newVal) => {
+                                const updated = [...document.body.bulletPoints];
+                                updated[idx] = newVal;
+                                updateBody({ bulletPoints: updated });
+                              }
+                            );
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Italic"
+                          onClick={() => {
+                            applySelectionFormatting(
+                              `bullet-input-${idx}`,
+                              '*',
+                              '*',
+                              'italic text',
+                              pt,
+                              (newVal) => {
+                                const updated = [...document.body.bulletPoints];
+                                updated[idx] = newVal;
+                                updateBody({ bulletPoints: updated });
+                              }
+                            );
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          title="Format Highlighted Text as Underline"
+                          onClick={() => {
+                            applySelectionFormatting(
+                              `bullet-input-${idx}`,
+                              '<u>',
+                              '</u>',
+                              'underlined text',
+                              pt,
+                              (newVal) => {
+                                const updated = [...document.body.bulletPoints];
+                                updated[idx] = newVal;
+                                updateBody({ bulletPoints: updated });
+                              }
+                            );
+                          }}
+                          className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                        >
+                          U
+                        </button>
                         <button
                           type="button"
                           onClick={() =>
@@ -1328,7 +1479,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                               bulletPoints: document.body.bulletPoints.filter((_, i) => i !== idx),
                             })
                           }
-                          className="text-destructive px-2 hover:bg-accent rounded-md"
+                          className="text-destructive p-1 hover:bg-accent rounded-md"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

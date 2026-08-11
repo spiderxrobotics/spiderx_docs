@@ -336,3 +336,174 @@
   }
 }
 
+/* Quill Rich Text Editor Custom Dark & Light Theme Styling */
+.spiderx-quill-wrapper .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+  padding: 6px;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.spiderx-quill-wrapper .ql-container.ql-snow {
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  background-color: var(--background);
+  color: var(--foreground);
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.spiderx-quill-wrapper .ql-editor {
+  min-height: 100px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.spiderx-quill-wrapper .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+  font-style: normal;
+  font-size: 0.75rem;
+  left: 12px;
+}
+
+.dark .spiderx-quill-wrapper .ql-stroke {
+  stroke: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-fill {
+  fill: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-picker {
+  color: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-picker-options {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.spiderx-quill-wrapper .ql-toolbar button:hover .ql-stroke,
+.spiderx-quill-wrapper .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #7f469b !important;
+}
+
+.spiderx-quill-wrapper .ql-toolbar button:hover .ql-fill,
+.spiderx-quill-wrapper .ql-toolbar button.ql-active .ql-fill {
+  fill: #7f469b !important;
+}
+
+/* SpiderX Canvas Quill HTML Content Styling */
+.spiderx-canvas-content p {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.45;
+}
+
+.spiderx-canvas-content h1 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 0.25rem;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.125rem;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-style: italic;
+  margin-top: 0.375rem;
+  margin-bottom: 0.25rem;
+  color: #1e293b;
+}
+
+.spiderx-canvas-content strong {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content em {
+  font-style: italic;
+}
+
+.spiderx-canvas-content u {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.spiderx-canvas-content ul {
+  list-style-type: disc;
+  list-style-position: inside;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.spiderx-canvas-content ol {
+  list-style-type: decimal;
+  list-style-position: inside;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.spiderx-canvas-content li {
+  margin-top: 0.125rem;
+  margin-bottom: 0.125rem;
+}
+
+/* Quill Text Alignment Styles for Letterhead Canvas */
+.spiderx-canvas-content .ql-align-center,
+.spiderx-canvas-content p.ql-align-center,
+.spiderx-canvas-content h1.ql-align-center,
+.spiderx-canvas-content h2.ql-align-center,
+.spiderx-canvas-content h3.ql-align-center,
+.spiderx-canvas-content h4.ql-align-center,
+.spiderx-canvas-content div.ql-align-center {
+  text-align: center !important;
+}
+
+.spiderx-canvas-content .ql-align-right,
+.spiderx-canvas-content p.ql-align-right,
+.spiderx-canvas-content h1.ql-align-right,
+.spiderx-canvas-content h2.ql-align-right,
+.spiderx-canvas-content h3.ql-align-right,
+.spiderx-canvas-content h4.ql-align-right,
+.spiderx-canvas-content div.ql-align-right {
+  text-align: right !important;
+}
+
+.spiderx-canvas-content .ql-align-justify,
+.spiderx-canvas-content p.ql-align-justify,
+.spiderx-canvas-content h1.ql-align-justify,
+.spiderx-canvas-content h2.ql-align-justify,
+.spiderx-canvas-content h3.ql-align-justify,
+.spiderx-canvas-content h4.ql-align-justify,
+.spiderx-canvas-content div.ql-align-justify {
+  text-align: justify !important;
+}
+
+.spiderx-canvas-content .ql-align-left,
+.spiderx-canvas-content p.ql-align-left,
+.spiderx-canvas-content h1.ql-align-left,
+.spiderx-canvas-content h2.ql-align-left,
+.spiderx-canvas-content h3.ql-align-left,
+.spiderx-canvas-content h4.ql-align-left,
+.spiderx-canvas-content div.ql-align-left {
+  text-align: left !important;
+}
+
