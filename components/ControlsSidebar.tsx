@@ -28,6 +28,41 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 
+const parseTableHtml = (html: string) => {
+  // Extract th headers
+  const thMatches = html.match(/<th[^>]*>([\s\S]*?)<\/th>/gi);
+  const headers = thMatches
+    ? thMatches.map((m) => m.replace(/<\/?th[^>]*>/gi, '').replace(/<[^>]+>/g, ''))
+    : ['Header 1', 'Header 2'];
+
+  // Extract tr rows containing td cells (ignoring header th rows)
+  const tdRowMatches = html.match(/<tr[^>]*>([\s\S]*?<\/td>[\s\S]*?)<\/tr>/gi);
+
+  const rows: string[][] = [];
+  if (tdRowMatches && tdRowMatches.length > 0) {
+    tdRowMatches.forEach((tr) => {
+      const tdMatches = tr.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+      if (tdMatches) {
+        rows.push(tdMatches.map((m) => m.replace(/<\/?td[^>]*>/gi, '').replace(/<[^>]+>/g, '')));
+      }
+    });
+  }
+
+  if (rows.length === 0) {
+    rows.push(new Array(headers.length).fill(''));
+  }
+
+  return { headers, rows };
+};
+
+const buildTableHtml = (headers: string[], rows: string[][]) => {
+  const headHtml = `<thead><tr>${headers.map((h) => `<th>${h || ''}</th>`).join('')}</tr></thead>`;
+  const bodyHtml = `<tbody>${rows
+    .map((r) => `<tr>${r.map((c) => `<td>${c || ''}</td>`).join('')}</tr>`)
+    .join('')}</tbody>`;
+  return `<table class="spiderx-table">${headHtml}${bodyHtml}</table>`;
+};
+
 const RichTextEditor = dynamic(
   () => import('@/components/RichTextEditor').then((mod) => mod.RichTextEditor),
   {
@@ -62,6 +97,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
   onToggleCollapse,
 }) => {
   const [activeTab, setActiveTab] = useState<'alignment' | 'recipient' | 'body' | 'signatory' | 'templates'>('alignment');
+  const [selectedAlignmentPageNum, setSelectedAlignmentPageNum] = useState<number>(1);
   const [savedTemplates, setSavedTemplates] = useState<{ id: string; name: string; data: DocumentData }[]>([]);
   const [templateNameInput, setTemplateNameInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -506,77 +542,184 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               </div>
             </div>
 
-            {/* Margin Alignment Sliders */}
+            {/* Page-Based Margin Alignment Sliders */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-4 shadow-xs">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                📐 Margin Clearance Controls (mm)
-              </h4>
-
-              {/* Top Margin Slider */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground font-medium">Header Clearance (Top Margin)</span>
-                  <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {document.layout.marginTopMm} mm
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  step="1"
-                  value={document.layout.marginTopMm}
-                  onChange={(e) => updateLayout({ marginTopMm: Number(e.target.value) })}
-                  className="w-full accent-[#7f469b] cursor-pointer"
-                />
-                <span className="text-[10px] text-muted-foreground">Adjust top space to prevent text from covering header graphics</span>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  📐 Page-Based Margin Clearance (mm)
+                </h4>
               </div>
 
-              {/* Bottom Margin Slider */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-foreground font-medium">Footer Clearance (Bottom Margin)</span>
-                  <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {document.layout.marginBottomMm} mm
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="90"
-                  step="1"
-                  value={document.layout.marginBottomMm}
-                  onChange={(e) => updateLayout({ marginBottomMm: Number(e.target.value) })}
-                  className="w-full accent-[#7f469b] cursor-pointer"
-                />
-                <span className="text-[10px] text-muted-foreground">Adjust bottom space to clear footer details & address</span>
-              </div>
+              {/* Dynamic Target Page Selector Buttons (Page 1, Page 2, Page 3...) */}
+              {(() => {
+                const isMultiPage = document.body.multiPage?.enableMultiPage ?? false;
+                const pagesList = isMultiPage ? (document.body.multiPage?.pages || []) : [];
+                const allPageNums = [1, ...pagesList.map((_, i) => i + 2)];
 
-              {/* Left / Right Padding Sliders */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">Left Padding</label>
-                  <Input
-                    type="number"
-                    min="10"
-                    max="50"
-                    value={document.layout.paddingLeftMm}
-                    onChange={(e) => updateLayout({ paddingLeftMm: Number(e.target.value) })}
-                    className="h-8 text-xs bg-background border-input rounded-md"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">Right Padding</label>
-                  <Input
-                    type="number"
-                    min="10"
-                    max="50"
-                    value={document.layout.paddingRightMm}
-                    onChange={(e) => updateLayout({ paddingRightMm: Number(e.target.value) })}
-                    className="h-8 text-xs bg-background border-input rounded-md"
-                  />
-                </div>
-              </div>
+                // Current target page values calculation
+                const isPage1 = selectedAlignmentPageNum === 1;
+                const pgIdx = selectedAlignmentPageNum - 2;
+                const targetPg = pagesList[pgIdx];
+
+                const currentTopMm = isPage1
+                  ? document.layout.marginTopMm
+                  : targetPg?.marginTopMm ?? document.layout.page2MarginTopMm ?? 28;
+
+                const currentBottomMm = isPage1
+                  ? document.layout.marginBottomMm
+                  : targetPg?.marginBottomMm ?? document.layout.page2MarginBottomMm ?? 25;
+
+                const currentLeftMm = isPage1
+                  ? document.layout.paddingLeftMm
+                  : targetPg?.paddingLeftMm ?? document.layout.page2PaddingLeftMm ?? document.layout.paddingLeftMm;
+
+                const currentRightMm = isPage1
+                  ? document.layout.paddingRightMm
+                  : targetPg?.paddingRightMm ?? document.layout.page2PaddingRightMm ?? document.layout.paddingRightMm;
+
+                const handleTopChange = (val: number) => {
+                  if (isPage1) {
+                    updateLayout({ marginTopMm: val });
+                  } else if (targetPg && pgIdx >= 0) {
+                    const updatedPages = [...pagesList];
+                    updatedPages[pgIdx] = { ...updatedPages[pgIdx], marginTopMm: val };
+                    updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
+                    updateLayout({ page2MarginTopMm: val });
+                  }
+                };
+
+                const handleBottomChange = (val: number) => {
+                  if (isPage1) {
+                    updateLayout({ marginBottomMm: val });
+                  } else if (targetPg && pgIdx >= 0) {
+                    const updatedPages = [...pagesList];
+                    updatedPages[pgIdx] = { ...updatedPages[pgIdx], marginBottomMm: val };
+                    updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
+                    updateLayout({ page2MarginBottomMm: val });
+                  }
+                };
+
+                const handleLeftChange = (val: number) => {
+                  if (isPage1) {
+                    updateLayout({ paddingLeftMm: val });
+                  } else if (targetPg && pgIdx >= 0) {
+                    const updatedPages = [...pagesList];
+                    updatedPages[pgIdx] = { ...updatedPages[pgIdx], paddingLeftMm: val };
+                    updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
+                    updateLayout({ page2PaddingLeftMm: val });
+                  }
+                };
+
+                const handleRightChange = (val: number) => {
+                  if (isPage1) {
+                    updateLayout({ paddingRightMm: val });
+                  } else if (targetPg && pgIdx >= 0) {
+                    const updatedPages = [...pagesList];
+                    updatedPages[pgIdx] = { ...updatedPages[pgIdx], paddingRightMm: val };
+                    updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
+                    updateLayout({ page2PaddingRightMm: val });
+                  }
+                };
+
+                return (
+                  <div className="space-y-4">
+                    {/* Target Page Selector Buttons */}
+                    <div className="flex flex-wrap gap-1.5 p-1 bg-muted rounded-md text-xs">
+                      {allPageNums.map((pNum) => (
+                        <button
+                          key={pNum}
+                          type="button"
+                          onClick={() => setSelectedAlignmentPageNum(pNum)}
+                          className={`flex-1 py-1.5 px-2 rounded-md font-semibold transition text-xs text-center ${
+                            selectedAlignmentPageNum === pNum
+                              ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs font-bold'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Page {pNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="text-[11px] font-semibold text-[#7f469b] dark:text-[#a862c8] flex items-center justify-between pt-1">
+                      <span>Page {selectedAlignmentPageNum} Header & Footer Clearance</span>
+                      <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                        {isPage1 ? 'First Page' : `Page ${selectedAlignmentPageNum}`}
+                      </span>
+                    </div>
+
+                    {/* Top Margin Slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-foreground font-medium">Header Clearance (Top Margin)</span>
+                        <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
+                          {currentTopMm} mm
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        step="1"
+                        value={currentTopMm}
+                        onChange={(e) => handleTopChange(Number(e.target.value))}
+                        className="w-full accent-[#7f469b] cursor-pointer"
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        Adjust top space for Page {selectedAlignmentPageNum} header line
+                      </span>
+                    </div>
+
+                    {/* Bottom Margin Slider */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-foreground font-medium">Footer Clearance (Bottom Margin)</span>
+                        <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
+                          {currentBottomMm} mm
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="90"
+                        step="1"
+                        value={currentBottomMm}
+                        onChange={(e) => handleBottomChange(Number(e.target.value))}
+                        className="w-full accent-[#7f469b] cursor-pointer"
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        Adjust bottom space for Page {selectedAlignmentPageNum} footer
+                      </span>
+                    </div>
+
+                    {/* Left / Right Padding Sliders */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-muted-foreground">Left Padding (mm)</label>
+                        <Input
+                          type="number"
+                          min="10"
+                          max="50"
+                          value={currentLeftMm}
+                          onChange={(e) => handleLeftChange(Number(e.target.value))}
+                          className="h-8 text-xs bg-background border-input rounded-md"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-muted-foreground">Right Padding (mm)</label>
+                        <Input
+                          type="number"
+                          min="10"
+                          max="50"
+                          value={currentRightMm}
+                          onChange={(e) => handleRightChange(Number(e.target.value))}
+                          className="h-8 text-xs bg-background border-input rounded-md"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Font & Zoom Controls */}
@@ -836,162 +979,22 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               </div>
 
               {document.body.multiPage?.enableMultiPage && (
-                <div className="space-y-4 pt-2 border-t border-border text-xs">
-                  <div>
-                    <label className="text-muted-foreground mb-1 block">Footer Continuation Notice</label>
-                    <Input
-                      type="text"
-                      value={document.body.multiPage?.continuedNoticeText || ''}
-                      onChange={(e) =>
-                        updateBody({
-                          multiPage: {
-                            ...(document.body.multiPage || {}),
-                            continuedNoticeText: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="e.g. ...Continued on Next Page"
-                      className="bg-background border-input rounded-md"
-                    />
-                  </div>
-
-                  {/* Dynamic Pages List */}
-                  <div className="space-y-3 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-foreground text-xs uppercase tracking-wide">
-                        Document Pages (Page 2 to N)
-                      </span>
-                      <Button
-                        type="button"
-                        variant="gradient"
-                        size="sm"
-                        onClick={() => {
-                          const currentPages = document.body.multiPage?.pages || [];
-                          const nextNum = currentPages.length + 2;
-                          const newPg = {
-                            id: `page-${nextNum}-${Date.now()}`,
-                            pageNumber: nextNum,
-                            paragraphs: ['Additional page content details, specifications, or terms.'],
-                          };
-                          updateBody({
-                            multiPage: {
-                              ...(document.body.multiPage || {}),
-                              pages: [...currentPages, newPg],
-                            },
-                          });
-                        }}
-                        className="gap-1 text-xs font-bold px-2.5 py-1 h-7 rounded-md"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Add Page {((document.body.multiPage?.pages || []).length + 2)}
-                      </Button>
-                    </div>
-
-                    {/* Render Each Additional Page Block */}
-                    {(document.body.multiPage?.pages || []).map((pg, pgIdx) => (
-                      <div
-                        key={pg.id || pgIdx}
-                        className="bg-background border border-border rounded-md p-3 space-y-3"
-                      >
-                        <div className="flex items-center justify-between border-b border-border pb-2">
-                          <span className="font-bold text-[#7f469b] dark:text-[#a862c8] flex items-center gap-1.5">
-                            📄 Page {pgIdx + 2}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updatedPages = (document.body.multiPage?.pages || [])
-                                .filter((_, i) => i !== pgIdx)
-                                .map((p, i) => ({ ...p, pageNumber: i + 2 }));
-                              updateBody({
-                                multiPage: {
-                                  ...(document.body.multiPage || {}),
-                                  pages: updatedPages,
-                                },
-                              });
-                            }}
-                            className="text-destructive hover:underline text-[11px] font-semibold"
-                          >
-                            Remove Page
-                          </button>
-                        </div>
-
-                        {/* Page Paragraphs */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground font-medium">Paragraphs</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updatedPages = [...(document.body.multiPage?.pages || [])];
-                                updatedPages[pgIdx] = {
-                                  ...updatedPages[pgIdx],
-                                  paragraphs: [...updatedPages[pgIdx].paragraphs, ''],
-                                };
-                                updateBody({
-                                  multiPage: {
-                                    ...(document.body.multiPage || {}),
-                                    pages: updatedPages,
-                                  },
-                                });
-                              }}
-                              className="text-[11px] text-[#7f469b] dark:text-[#a862c8] hover:underline font-semibold"
-                            >
-                              + Add Paragraph
-                            </button>
-                          </div>
-
-                          {pg.paragraphs.map((paraText, pIdx) => (
-                            <div key={pIdx} className="space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                <span>Para {pIdx + 1}</span>
-                                {pg.paragraphs.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const updatedPages = [...(document.body.multiPage?.pages || [])];
-                                      updatedPages[pgIdx] = {
-                                        ...updatedPages[pgIdx],
-                                        paragraphs: updatedPages[pgIdx].paragraphs.filter((_, i) => i !== pIdx),
-                                      };
-                                      updateBody({
-                                        multiPage: {
-                                          ...(document.body.multiPage || {}),
-                                          pages: updatedPages,
-                                        },
-                                      });
-                                    }}
-                                    className="text-destructive hover:underline"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                              <textarea
-                                value={paraText}
-                                onChange={(e) => {
-                                  const updatedPages = [...(document.body.multiPage?.pages || [])];
-                                  const newParas = [...updatedPages[pgIdx].paragraphs];
-                                  newParas[pIdx] = e.target.value;
-                                  updatedPages[pgIdx] = {
-                                    ...updatedPages[pgIdx],
-                                    paragraphs: newParas,
-                                  };
-                                  updateBody({
-                                    multiPage: {
-                                      ...(document.body.multiPage || {}),
-                                      pages: updatedPages,
-                                    },
-                                  });
-                                }}
-                                rows={3}
-                                className="w-full bg-card border border-input rounded-md p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] resize-y"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="pt-2 border-t border-border text-xs">
+                  <label className="text-muted-foreground mb-1 block font-medium">Footer Continuation Notice</label>
+                  <Input
+                    type="text"
+                    value={document.body.multiPage?.continuedNoticeText || ''}
+                    onChange={(e) =>
+                      updateBody({
+                        multiPage: {
+                          ...(document.body.multiPage || {}),
+                          continuedNoticeText: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="e.g. ...Continued on Next Page"
+                    className="bg-background border-input rounded-md"
+                  />
                 </div>
               )}
             </div>
@@ -1256,7 +1259,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               )}
             </div>
 
-            {/* Paragraphs & Headings Content Blocks Editor */}
+            {/* Paragraphs, Headings & List Content Blocks Editor */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -1267,11 +1270,46 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
               <div className="space-y-4">
                 {document.body.paragraphs.map((para, idx) => {
                   const isHeadingBlock = para.startsWith('<h') || para.startsWith('#');
+                  const isListBlock = para.includes('<ol') || para.includes('<ul');
+                  const isTableBlock = para.includes('<table');
+
+                  // Extract list style and list items if this is a List Block
+                  let listStyle: 'decimal' | 'disc' = para.includes('<ul') || para.includes('disc') ? 'disc' : 'decimal';
+                  let listItems: string[] = [];
+                  if (isListBlock) {
+                    const matches = para.match(/<li[^>]*>(.*?)<\/li>/gi);
+                    if (matches && matches.length > 0) {
+                      listItems = matches.map((m) => m.replace(/<\/?li[^>]*>/gi, ''));
+                    } else {
+                      listItems = [''];
+                    }
+                  }
+
+                  const updateListBlock = (newStyle: 'decimal' | 'disc', newItems: string[]) => {
+                    const tag = newStyle === 'decimal' ? 'ol' : 'ul';
+                    const newHtml = `<${tag} class="${newStyle}">${newItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`;
+                    const updated = [...document.body.paragraphs];
+                    updated[idx] = newHtml;
+                    updateBody({ paragraphs: updated });
+                  };
+
+                  // Table block parsing & updating
+                  const { headers: tableHeaders, rows: tableRows } = isTableBlock
+                    ? parseTableHtml(para)
+                    : { headers: ['Header 1', 'Header 2'], rows: [['', '']] };
+
+                  const updateTableBlock = (newHeaders: string[], newRows: string[][]) => {
+                    const newHtml = buildTableHtml(newHeaders, newRows);
+                    const updated = [...document.body.paragraphs];
+                    updated[idx] = newHtml;
+                    updateBody({ paragraphs: updated });
+                  };
+
                   return (
-                    <div key={idx} className="space-y-2 bg-background/50 border border-border p-3 rounded-md">
+                    <div key={idx} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span className="font-semibold text-foreground flex items-center gap-1.5">
-                          {isHeadingBlock ? '📌 Heading Block' : '📄 Paragraph Block'} {idx + 1}
+                          {isTableBlock ? '📊 Table Block' : isListBlock ? '🔢 List Block' : isHeadingBlock ? '📌 Heading Block' : '📄 Paragraph Block'} {idx + 1}
                         </span>
                         {document.body.paragraphs.length > 1 && (
                           <button
@@ -1283,41 +1321,318 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                             }
                             className="text-destructive hover:underline text-xs font-semibold"
                           >
-                            Delete
+                            Delete Block
                           </button>
                         )}
                       </div>
-                      
-                      {/* Quill Rich Text Editor */}
-                      <RichTextEditor
-                        value={para}
-                        onChange={(newHtml) => {
-                          const updated = [...document.body.paragraphs];
-                          updated[idx] = newHtml;
-                          updateBody({ paragraphs: updated });
-                        }}
-                        placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
-                      />
+
+                      {/* Custom Table Block Editor */}
+                      {isTableBlock ? (
+                        <div className="space-y-3 text-xs pt-1">
+                          <div className="flex items-center justify-between text-[11px] border-b border-border pb-1.5">
+                            <span className="font-semibold text-foreground">Table Columns ({tableHeaders.length})</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newHeaders = [...tableHeaders, `Header ${tableHeaders.length + 1}`];
+                                const newRows = tableRows.map((r) => [...r, '']);
+                                updateTableBlock(newHeaders, newRows);
+                              }}
+                              className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                            >
+                              <Plus className="w-3 h-3" /> Add Column
+                            </button>
+                          </div>
+
+                          {/* Column Headers Inputs */}
+                          <div className="grid grid-cols-2 gap-1.5 bg-muted/40 p-2 rounded-md border border-border/60">
+                            {tableHeaders.map((h, hIdx) => (
+                              <div key={hIdx} className="space-y-0.5">
+                                <label className="text-[10px] text-muted-foreground font-semibold">Col {hIdx + 1}</label>
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="text"
+                                    value={h}
+                                    onChange={(e) => {
+                                      const newHeaders = [...tableHeaders];
+                                      newHeaders[hIdx] = e.target.value;
+                                      updateTableBlock(newHeaders, tableRows);
+                                    }}
+                                    placeholder="Header title..."
+                                    className="h-7 text-xs bg-background font-semibold"
+                                  />
+                                  {tableHeaders.length > 1 && (
+                                    <button
+                                      type="button"
+                                      title="Delete Column"
+                                      onClick={() => {
+                                        const newHeaders = tableHeaders.filter((_, i) => i !== hIdx);
+                                        const newRows = tableRows.map((r) => r.filter((_, i) => i !== hIdx));
+                                        updateTableBlock(newHeaders, newRows);
+                                      }}
+                                      className="text-destructive p-1 hover:bg-accent rounded-md"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Rows Editor */}
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-muted-foreground font-medium">Table Rows ({tableRows.length})</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const emptyRow = new Array(tableHeaders.length).fill('');
+                                  updateTableBlock(tableHeaders, [...tableRows, emptyRow]);
+                                }}
+                                className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                              >
+                                <Plus className="w-3 h-3" /> Add Row
+                              </button>
+                            </div>
+
+                            {tableRows.map((r, rIdx) => (
+                              <div key={rIdx} className="bg-background border border-input p-2 rounded-md space-y-1.5">
+                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                  <span className="font-semibold">Row {rIdx + 1}</span>
+                                  {tableRows.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newRows = tableRows.filter((_, i) => i !== rIdx);
+                                        updateTableBlock(tableHeaders, newRows);
+                                      }}
+                                      className="text-destructive hover:underline font-semibold"
+                                    >
+                                      Delete Row
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {r.map((cellVal, cIdx) => (
+                                    <Input
+                                      key={cIdx}
+                                      type="text"
+                                      value={cellVal}
+                                      onChange={(e) => {
+                                        const newRows = tableRows.map((rowArr, ri) =>
+                                          ri === rIdx
+                                            ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
+                                            : rowArr
+                                        );
+                                        updateTableBlock(tableHeaders, newRows);
+                                      }}
+                                      placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
+                                      className="h-7 text-xs bg-background/80"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : isListBlock ? (
+                        <div className="space-y-2 text-xs pt-1">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => updateListBlock('decimal', listItems)}
+                              className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                                listStyle === 'decimal'
+                                  ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              Numbered List (1, 2, 3...)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateListBlock('disc', listItems)}
+                              className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                                listStyle === 'disc'
+                                  ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              Bullet Points (•)
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-muted-foreground font-medium">List Items ({listItems.length})</span>
+                              <button
+                                type="button"
+                                onClick={() => updateListBlock(listStyle, [...listItems, ''])}
+                                className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                              >
+                                <Plus className="w-3 h-3" /> Add Item
+                              </button>
+                            </div>
+
+                            {listItems.map((itemText, itemIdx) => (
+                              <div key={itemIdx} className="flex items-center gap-1 bg-background border border-input p-1.5 rounded-md">
+                                <span className="text-[10px] text-muted-foreground font-semibold px-1 min-w-4">
+                                  {listStyle === 'decimal' ? `${itemIdx + 1}.` : '•'}
+                                </span>
+                                <Input
+                                  id={`list-block-${idx}-item-${itemIdx}`}
+                                  type="text"
+                                  value={itemText}
+                                  onChange={(e) => {
+                                    const updatedItems = [...listItems];
+                                    updatedItems[itemIdx] = e.target.value;
+                                    updateListBlock(listStyle, updatedItems);
+                                  }}
+                                  placeholder="List item text..."
+                                  className="bg-transparent border-none text-xs flex-1 font-sans focus-visible:ring-0 p-1"
+                                />
+                                <button
+                                  type="button"
+                                  title="Format Highlighted Text as Bold"
+                                  onClick={() =>
+                                    applySelectionFormatting(
+                                      `list-block-${idx}-item-${itemIdx}`,
+                                      '**',
+                                      '**',
+                                      'bold text',
+                                      itemText,
+                                      (newVal) => {
+                                        const updatedItems = [...listItems];
+                                        updatedItems[itemIdx] = newVal;
+                                        updateListBlock(listStyle, updatedItems);
+                                      }
+                                    )
+                                  }
+                                  className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                                >
+                                  B
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Format Highlighted Text as Italic"
+                                  onClick={() =>
+                                    applySelectionFormatting(
+                                      `list-block-${idx}-item-${itemIdx}`,
+                                      '*',
+                                      '*',
+                                      'italic text',
+                                      itemText,
+                                      (newVal) => {
+                                        const updatedItems = [...listItems];
+                                        updatedItems[itemIdx] = newVal;
+                                        updateListBlock(listStyle, updatedItems);
+                                      }
+                                    )
+                                  }
+                                  className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                                >
+                                  I
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Format Highlighted Text as Underline"
+                                  onClick={() =>
+                                    applySelectionFormatting(
+                                      `list-block-${idx}-item-${itemIdx}`,
+                                      '<u>',
+                                      '</u>',
+                                      'underlined text',
+                                      itemText,
+                                      (newVal) => {
+                                        const updatedItems = [...listItems];
+                                        updatedItems[itemIdx] = newVal;
+                                        updateListBlock(listStyle, updatedItems);
+                                      }
+                                    )
+                                  }
+                                  className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                                >
+                                  U
+                                </button>
+                                {listItems.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateListBlock(
+                                        listStyle,
+                                        listItems.filter((_, i) => i !== itemIdx)
+                                      )
+                                    }
+                                    className="text-destructive p-1 hover:bg-accent rounded-md"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        /* Quill Rich Text Editor for Paragraph / Heading */
+                        <RichTextEditor
+                          value={para}
+                          onChange={(newHtml) => {
+                            const updated = [...document.body.paragraphs];
+                            updated[idx] = newHtml;
+                            updateBody({ paragraphs: updated });
+                          }}
+                          placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
+                        />
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              {/* Bottom Add Paragraph & Add Heading Action Buttons */}
-              <div className="pt-2 flex items-center justify-center gap-2 border-t border-border/50">
+              {/* Bottom Add Block Actions */}
+              <div className="pt-2 grid grid-cols-4 gap-1.5 border-t border-border/50">
                 <button
                   type="button"
                   onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, ''] })}
-                  className="w-1/2 text-xs py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                  className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Paragraph
+                  <Plus className="w-3 h-3" /> Paragraph
                 </button>
                 <button
                   type="button"
-                  onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, '<h2>Section Heading</h2>'] })}
-                  className="w-1/2 text-xs py-2 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white rounded-md flex items-center justify-center gap-1 font-semibold shadow-xs transition"
+                  onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, '<h2>Heading</h2>'] })}
+                  className="text-[11px] py-2 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white rounded-md flex items-center justify-center gap-1 font-semibold shadow-xs transition"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Heading
+                  <Plus className="w-3 h-3" /> Heading
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBody({
+                      paragraphs: [
+                        ...document.body.paragraphs,
+                        '<ol class="decimal"><li></li><li></li></ol>',
+                      ],
+                    })
+                  }
+                  className="text-[11px] py-2 bg-[#7f469b]/15 text-[#7f469b] dark:text-[#a862c8] hover:bg-[#7f469b]/25 rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                >
+                  <Plus className="w-3 h-3" /> List Block
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateBody({
+                      paragraphs: [
+                        ...document.body.paragraphs,
+                        '<table class="spiderx-table"><thead><tr><th>Header 1</th><th>Header 2</th></tr></thead><tbody><tr><td></td><td></td></tr></tbody></table>',
+                      ],
+                    })
+                  }
+                  className="text-[11px] py-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                >
+                  <Plus className="w-3 h-3" /> Table
                 </button>
               </div>
             </div>
@@ -1489,6 +1804,530 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Additional Document Pages (Page 2 to N) with Quill RichTextEditor & List Blocks */}
+            {document.body.multiPage?.enableMultiPage && (
+              <div className="bg-card border border-border rounded-lg p-4 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    📄 Additional Document Pages (Page 2 to N)
+                  </h4>
+                  <Button
+                    type="button"
+                    variant="gradient"
+                    size="sm"
+                    onClick={() => {
+                      const currentPages = document.body.multiPage?.pages || [];
+                      const nextNum = currentPages.length + 2;
+                      const newPg = {
+                        id: `page-${nextNum}-${Date.now()}`,
+                        pageNumber: nextNum,
+                        paragraphs: [''],
+                      };
+                      updateBody({
+                        multiPage: {
+                          ...(document.body.multiPage || {}),
+                          pages: [...currentPages, newPg],
+                        },
+                      });
+                    }}
+                    className="gap-1 text-xs font-bold px-2.5 py-1 h-7 rounded-md"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Page {((document.body.multiPage?.pages || []).length + 2)}
+                  </Button>
+                </div>
+
+                {/* Render Each Additional Page */}
+                <div className="space-y-4 pt-1">
+                  {(document.body.multiPage?.pages || []).map((pg, pgIdx) => (
+                    <div
+                      key={pg.id || pgIdx}
+                      className="bg-background border border-border rounded-md p-3 space-y-3"
+                    >
+                      <div className="flex items-center justify-between border-b border-border pb-2">
+                        <span className="font-bold text-[#7f469b] dark:text-[#a862c8] flex items-center gap-1.5 text-xs">
+                          📄 Page {pgIdx + 2} Content Blocks
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPages = (document.body.multiPage?.pages || [])
+                              .filter((_, i) => i !== pgIdx)
+                              .map((p, i) => ({ ...p, pageNumber: i + 2 }));
+                            
+                            if (updatedPages.length === 0) {
+                              updateBody({
+                                multiPage: {
+                                  ...(document.body.multiPage || {}),
+                                  enableMultiPage: false,
+                                  pages: [],
+                                },
+                              });
+                            } else {
+                              updateBody({
+                                multiPage: {
+                                  ...(document.body.multiPage || {}),
+                                  pages: updatedPages,
+                                },
+                              });
+                            }
+                          }}
+                          className="text-destructive hover:underline text-[11px] font-semibold"
+                        >
+                          Remove Page
+                        </button>
+                      </div>
+
+                      {/* Content Blocks for Page N */}
+                      <div className="space-y-3">
+                        {pg.paragraphs.map((para, pIdx) => {
+                          const isHeadingBlock = para.startsWith('<h') || para.startsWith('#');
+                          const isListBlock = para.includes('<ol') || para.includes('<ul');
+                          const isTableBlock = para.includes('<table');
+
+                          let listStyle: 'decimal' | 'disc' = para.includes('<ul') || para.includes('disc') ? 'disc' : 'decimal';
+                          let listItems: string[] = [];
+                          if (isListBlock) {
+                            const matches = para.match(/<li[^>]*>(.*?)<\/li>/gi);
+                            if (matches && matches.length > 0) {
+                              listItems = matches.map((m) => m.replace(/<\/?li[^>]*>/gi, ''));
+                            } else {
+                              listItems = [''];
+                            }
+                          }
+
+                          const updatePgListBlock = (newStyle: 'decimal' | 'disc', newItems: string[]) => {
+                            const tag = newStyle === 'decimal' ? 'ol' : 'ul';
+                            const newHtml = `<${tag} class="${newStyle}">${newItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`;
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            const newParas = [...updatedPages[pgIdx].paragraphs];
+                            newParas[pIdx] = newHtml;
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: newParas,
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          };
+
+                          // Table block parsing & updating for Page N
+                          const { headers: tableHeaders, rows: tableRows } = isTableBlock
+                            ? parseTableHtml(para)
+                            : { headers: ['Header 1', 'Header 2'], rows: [['', '']] };
+
+                          const updatePgTableBlock = (newHeaders: string[], newRows: string[][]) => {
+                            const newHtml = buildTableHtml(newHeaders, newRows);
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            const newParas = [...updatedPages[pgIdx].paragraphs];
+                            newParas[pIdx] = newHtml;
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: newParas,
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          };
+
+                          return (
+                            <div key={pIdx} className="space-y-2 bg-background/50 border border-border p-3 rounded-md">
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                  {isTableBlock ? '📊 Table Block' : isListBlock ? '🔢 List Block' : isHeadingBlock ? '📌 Heading Block' : '📄 Paragraph Block'} {pIdx + 1}
+                                </span>
+                                {pg.paragraphs.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedPages = [...(document.body.multiPage?.pages || [])];
+                                      updatedPages[pgIdx] = {
+                                        ...updatedPages[pgIdx],
+                                        paragraphs: updatedPages[pgIdx].paragraphs.filter((_, i) => i !== pIdx),
+                                      };
+                                      updateBody({
+                                        multiPage: {
+                                          ...(document.body.multiPage || {}),
+                                          pages: updatedPages,
+                                        },
+                                      });
+                                    }}
+                                    className="text-destructive hover:underline text-xs font-semibold"
+                                  >
+                                    Delete Block
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Custom Table Block Editor */}
+                              {isTableBlock ? (
+                                <div className="space-y-3 text-xs pt-1">
+                                  <div className="flex items-center justify-between text-[11px] border-b border-border pb-1.5">
+                                    <span className="font-semibold text-foreground">Table Columns ({tableHeaders.length})</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newHeaders = [...tableHeaders, `Header ${tableHeaders.length + 1}`];
+                                        const newRows = tableRows.map((r) => [...r, '']);
+                                        updatePgTableBlock(newHeaders, newRows);
+                                      }}
+                                      className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add Column
+                                    </button>
+                                  </div>
+
+                                  {/* Column Headers Inputs */}
+                                  <div className="grid grid-cols-2 gap-1.5 bg-muted/40 p-2 rounded-md border border-border/60">
+                                    {tableHeaders.map((h, hIdx) => (
+                                      <div key={hIdx} className="space-y-0.5">
+                                        <label className="text-[10px] text-muted-foreground font-semibold">Col {hIdx + 1}</label>
+                                        <div className="flex items-center gap-1">
+                                          <Input
+                                            type="text"
+                                            value={h}
+                                            onChange={(e) => {
+                                              const newHeaders = [...tableHeaders];
+                                              newHeaders[hIdx] = e.target.value;
+                                              updatePgTableBlock(newHeaders, tableRows);
+                                            }}
+                                            placeholder="Header title..."
+                                            className="h-7 text-xs bg-background font-semibold"
+                                          />
+                                          {tableHeaders.length > 1 && (
+                                            <button
+                                              type="button"
+                                              title="Delete Column"
+                                              onClick={() => {
+                                                const newHeaders = tableHeaders.filter((_, i) => i !== hIdx);
+                                                const newRows = tableRows.map((r) => r.filter((_, i) => i !== hIdx));
+                                                updatePgTableBlock(newHeaders, newRows);
+                                              }}
+                                              className="text-destructive p-1 hover:bg-accent rounded-md"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Rows Editor */}
+                                  <div className="space-y-2 pt-1">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="text-muted-foreground font-medium">Table Rows ({tableRows.length})</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const emptyRow = new Array(tableHeaders.length).fill('');
+                                          updatePgTableBlock(tableHeaders, [...tableRows, emptyRow]);
+                                        }}
+                                        className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                                      >
+                                        <Plus className="w-3 h-3" /> Add Row
+                                      </button>
+                                    </div>
+
+                                    {tableRows.map((r, rIdx) => (
+                                      <div key={rIdx} className="bg-background border border-input p-2 rounded-md space-y-1.5">
+                                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                          <span className="font-semibold">Row {rIdx + 1}</span>
+                                          {tableRows.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newRows = tableRows.filter((_, i) => i !== rIdx);
+                                                updatePgTableBlock(tableHeaders, newRows);
+                                              }}
+                                              className="text-destructive hover:underline font-semibold"
+                                            >
+                                              Delete Row
+                                            </button>
+                                          )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                          {r.map((cellVal, cIdx) => (
+                                            <Input
+                                              key={cIdx}
+                                              type="text"
+                                              value={cellVal}
+                                              onChange={(e) => {
+                                                const newRows = tableRows.map((rowArr, ri) =>
+                                                  ri === rIdx
+                                                    ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
+                                                    : rowArr
+                                                );
+                                                updatePgTableBlock(tableHeaders, newRows);
+                                              }}
+                                              placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
+                                              className="h-7 text-xs bg-background/80"
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : isListBlock ? (
+                                <div className="space-y-2 text-xs pt-1">
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => updatePgListBlock('decimal', listItems)}
+                                      className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                                        listStyle === 'decimal'
+                                          ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                                          : 'bg-muted text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    >
+                                      Numbered List (1, 2, 3...)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => updatePgListBlock('disc', listItems)}
+                                      className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                                        listStyle === 'disc'
+                                          ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                                          : 'bg-muted text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    >
+                                      Bullet Points (•)
+                                    </button>
+                                  </div>
+
+                                  <div className="space-y-2 pt-1">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="text-muted-foreground font-medium">List Items ({listItems.length})</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => updatePgListBlock(listStyle, [...listItems, ''])}
+                                        className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                                      >
+                                        <Plus className="w-3 h-3" /> Add Item
+                                      </button>
+                                    </div>
+
+                                    {listItems.map((itemText, itemIdx) => (
+                                      <div key={itemIdx} className="flex items-center gap-1 bg-background border border-input p-1.5 rounded-md">
+                                        <span className="text-[10px] text-muted-foreground font-semibold px-1 min-w-4">
+                                          {listStyle === 'decimal' ? `${itemIdx + 1}.` : '•'}
+                                        </span>
+                                        <Input
+                                          id={`pg-${pgIdx}-list-${pIdx}-item-${itemIdx}`}
+                                          type="text"
+                                          value={itemText}
+                                          onChange={(e) => {
+                                            const updatedItems = [...listItems];
+                                            updatedItems[itemIdx] = e.target.value;
+                                            updatePgListBlock(listStyle, updatedItems);
+                                          }}
+                                          placeholder="List item text..."
+                                          className="bg-transparent border-none text-xs flex-1 font-sans focus-visible:ring-0 p-1"
+                                        />
+                                        <button
+                                          type="button"
+                                          title="Format Highlighted Text as Bold"
+                                          onClick={() =>
+                                            applySelectionFormatting(
+                                              `pg-${pgIdx}-list-${pIdx}-item-${itemIdx}`,
+                                              '**',
+                                              '**',
+                                              'bold text',
+                                              itemText,
+                                              (newVal) => {
+                                                const updatedItems = [...listItems];
+                                                updatedItems[itemIdx] = newVal;
+                                                updatePgListBlock(listStyle, updatedItems);
+                                              }
+                                            )
+                                          }
+                                          className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                                        >
+                                          B
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="Format Highlighted Text as Italic"
+                                          onClick={() =>
+                                            applySelectionFormatting(
+                                              `pg-${pgIdx}-list-${pIdx}-item-${itemIdx}`,
+                                              '*',
+                                              '*',
+                                              'italic text',
+                                              itemText,
+                                              (newVal) => {
+                                                const updatedItems = [...listItems];
+                                                updatedItems[itemIdx] = newVal;
+                                                updatePgListBlock(listStyle, updatedItems);
+                                              }
+                                            )
+                                          }
+                                          className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                                        >
+                                          I
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title="Format Highlighted Text as Underline"
+                                          onClick={() =>
+                                            applySelectionFormatting(
+                                              `pg-${pgIdx}-list-${pIdx}-item-${itemIdx}`,
+                                              '<u>',
+                                              '</u>',
+                                              'underlined text',
+                                              itemText,
+                                              (newVal) => {
+                                                const updatedItems = [...listItems];
+                                                updatedItems[itemIdx] = newVal;
+                                                updatePgListBlock(listStyle, updatedItems);
+                                              }
+                                            )
+                                          }
+                                          className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                                        >
+                                          U
+                                        </button>
+                                        {listItems.length > 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              updatePgListBlock(
+                                                listStyle,
+                                                listItems.filter((_, i) => i !== itemIdx)
+                                              )
+                                            }
+                                            className="text-destructive p-1 hover:bg-accent rounded-md"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <RichTextEditor
+                                  value={para}
+                                  onChange={(newHtml) => {
+                                    const updatedPages = [...(document.body.multiPage?.pages || [])];
+                                    const newParas = [...updatedPages[pgIdx].paragraphs];
+                                    newParas[pIdx] = newHtml;
+                                    updatedPages[pgIdx] = {
+                                      ...updatedPages[pgIdx],
+                                      paragraphs: newParas,
+                                    };
+                                    updateBody({
+                                      multiPage: {
+                                        ...(document.body.multiPage || {}),
+                                        pages: updatedPages,
+                                      },
+                                    });
+                                  }}
+                                  placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Bottom Add Actions for Page N */}
+                      <div className="pt-2 grid grid-cols-4 gap-1.5 border-t border-border/50">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: [...updatedPages[pgIdx].paragraphs, ''],
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          }}
+                          className="text-[11px] py-1.5 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                        >
+                          <Plus className="w-3 h-3" /> Paragraph
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: [...updatedPages[pgIdx].paragraphs, '<h2>Heading</h2>'],
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          }}
+                          className="text-[11px] py-1.5 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white rounded-md flex items-center justify-center gap-1 font-semibold shadow-xs transition"
+                        >
+                          <Plus className="w-3 h-3" /> Heading
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: [
+                                ...updatedPages[pgIdx].paragraphs,
+                                '<ol class="decimal"><li></li><li></li></ol>',
+                              ],
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          }}
+                          className="text-[11px] py-1.5 bg-[#7f469b]/15 text-[#7f469b] dark:text-[#a862c8] hover:bg-[#7f469b]/25 rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                        >
+                          <Plus className="w-3 h-3" /> List Block
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedPages = [...(document.body.multiPage?.pages || [])];
+                            updatedPages[pgIdx] = {
+                              ...updatedPages[pgIdx],
+                              paragraphs: [
+                                ...updatedPages[pgIdx].paragraphs,
+                                '<table class="spiderx-table"><thead><tr><th>Header 1</th><th>Header 2</th></tr></thead><tbody><tr><td></td><td></td></tr></tbody></table>',
+                              ],
+                            };
+                            updateBody({
+                              multiPage: {
+                                ...(document.body.multiPage || {}),
+                                pages: updatedPages,
+                              },
+                            });
+                          }}
+                          className="text-[11px] py-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25 rounded-md flex items-center justify-center gap-1 font-semibold transition"
+                        >
+                          <Plus className="w-3 h-3" /> Table
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Key-Value Table Control */}
             <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">

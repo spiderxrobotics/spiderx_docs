@@ -64,6 +64,12 @@ export interface DocumentPage {
   showTable?: boolean;
   tableTitle?: string;
   tableRows?: TableRow[];
+
+  // Custom margin clearance overrides per page (in mm)
+  marginTopMm?: number;
+  marginBottomMm?: number;
+  paddingLeftMm?: number;
+  paddingRightMm?: number;
 }
 
 export interface MultiPageSettings {
@@ -118,10 +124,16 @@ export interface DocumentBody {
 
 export interface LayoutSettings {
   // Margins in mm (Standard A4 is 210 x 297 mm)
-  marginTopMm: number; // Space reserved for letterhead top header
-  marginBottomMm: number; // Space reserved for letterhead bottom footer
+  marginTopMm: number; // Space reserved for Page 1 letterhead top header
+  marginBottomMm: number; // Space reserved for Page 1 letterhead bottom footer
   paddingLeftMm: number;
   paddingRightMm: number;
+  
+  // Additional Pages (Page 2 to N) Clearance Overrides (in mm)
+  page2MarginTopMm?: number; // Space reserved for Page 2+ header (e.g. 28mm)
+  page2MarginBottomMm?: number; // Space reserved for Page 2+ footer (e.g. 25mm)
+  page2PaddingLeftMm?: number;
+  page2PaddingRightMm?: number;
   
   // Font & Visuals
   fontFamily: 'Inter' | 'Roboto' | 'Cinzel' | 'Playfair Display' | 'Courier New' | 'Times New Roman';

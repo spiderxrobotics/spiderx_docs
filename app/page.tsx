@@ -60,6 +60,19 @@ export default function Home() {
     }
   }, []);
 
+  // Synchronize active theme to document.documentElement (.dark class and colorScheme)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (theme === 'dark') {
+        window.document.documentElement.classList.add('dark');
+        window.document.documentElement.style.colorScheme = 'dark';
+      } else {
+        window.document.documentElement.classList.remove('dark');
+        window.document.documentElement.style.colorScheme = 'light';
+      }
+    }
+  }, [theme]);
+
   // Save document changes to LocalStorage
   const handleDocumentChange = (updated: DocumentData) => {
     setDocument(updated);

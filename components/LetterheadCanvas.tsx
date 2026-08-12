@@ -120,20 +120,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
     ];
   }
 
-  // Ensure if multiPage is enabled, we have at least 1 additional page
-  if (isMultiPage && additionalPages.length === 0) {
-    additionalPages = [
-      {
-        id: 'page-2',
-        pageNumber: 2,
-        paragraphs: [
-          'Following our initial discussions, this section details the project milestones, deliverables, and technical governance framework.',
-        ],
-      },
-    ];
-  }
-
-  const totalPages = isMultiPage ? 1 + additionalPages.length : 1;
+  const totalPages = isMultiPage && additionalPages.length > 0 ? 1 + additionalPages.length : 1;
 
   // Helper render for Director Signatures & Company Seal
   const renderSignaturesAndSeal = () => {
@@ -600,50 +587,64 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   </div>
                 )}
 
-                {/* Alignment Guides */}
-                {layout.showAlignmentGuides && (
-                  <div className="no-print absolute inset-0 pointer-events-none z-10">
-                    <div
-                      className="absolute left-0 right-0 border-b border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
-                      style={{ top: `${topPx}px` }}
-                    >
-                      <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
-                        Header Clearance ({layout.marginTopMm}mm)
-                      </span>
-                    </div>
+                {/* Page-Specific Margins Calculation for Page N */}
+                {(() => {
+                  const pgTopMm = pg.marginTopMm ?? layout.page2MarginTopMm ?? layout.marginTopMm;
+                  const pgBottomMm = pg.marginBottomMm ?? layout.page2MarginBottomMm ?? layout.marginBottomMm;
+                  const pgLeftMm = pg.paddingLeftMm ?? layout.page2PaddingLeftMm ?? layout.paddingLeftMm;
+                  const pgRightMm = pg.paddingRightMm ?? layout.page2PaddingRightMm ?? layout.paddingRightMm;
 
-                    <div
-                      className="absolute left-0 right-0 border-t border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
-                      style={{ bottom: `${bottomPx}px` }}
-                    >
-                      <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
-                        Footer Clearance ({layout.marginBottomMm}mm)
-                      </span>
-                    </div>
+                  const pgTopPx = mmToPx(pgTopMm);
+                  const pgBottomPx = mmToPx(pgBottomMm);
+                  const pgLeftPx = mmToPx(pgLeftMm);
+                  const pgRightPx = mmToPx(pgRightMm);
 
-                    <div
-                      className="absolute top-0 bottom-0 border-r border-dashed border-[#7f469b]/40"
-                      style={{ left: `${leftPx}px` }}
-                    />
+                  return (
+                    <>
+                      {/* Alignment Guides */}
+                      {layout.showAlignmentGuides && (
+                        <div className="no-print absolute inset-0 pointer-events-none z-10">
+                          <div
+                            className="absolute left-0 right-0 border-b border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                            style={{ top: `${pgTopPx}px` }}
+                          >
+                            <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                              Page {pageNum} Header Clearance ({pgTopMm}mm)
+                            </span>
+                          </div>
 
-                    <div
-                      className="absolute top-0 bottom-0 border-l border-dashed border-[#7f469b]/40"
-                      style={{ right: `${rightPx}px` }}
-                    />
-                  </div>
-                )}
+                          <div
+                            className="absolute left-0 right-0 border-t border-dashed border-[#7f469b]/60 flex items-center justify-end px-3"
+                            style={{ bottom: `${pgBottomPx}px` }}
+                          >
+                            <span className="bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white font-mono text-[9px] px-1.5 py-0.5 rounded-sm shadow-xs">
+                              Page {pageNum} Footer Clearance ({pgBottomMm}mm)
+                            </span>
+                          </div>
 
-                {/* Page N Content */}
-                <div
-                  className="relative z-20 flex flex-col justify-between h-full text-slate-900"
-                  style={{
-                    paddingTop: `${topPx}px`,
-                    paddingBottom: `${bottomPx}px`,
-                    paddingLeft: `${leftPx}px`,
-                    paddingRight: `${rightPx}px`,
-                    boxSizing: 'border-box',
-                  }}
-                >
+                          <div
+                            className="absolute top-0 bottom-0 border-r border-dashed border-[#7f469b]/40"
+                            style={{ left: `${pgLeftPx}px` }}
+                          />
+
+                          <div
+                            className="absolute top-0 bottom-0 border-l border-dashed border-[#7f469b]/40"
+                            style={{ right: `${pgRightPx}px` }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Page N Content */}
+                      <div
+                        className="relative z-20 flex flex-col justify-between h-full text-slate-900"
+                        style={{
+                          paddingTop: `${pgTopPx}px`,
+                          paddingBottom: `${pgBottomPx}px`,
+                          paddingLeft: `${pgLeftPx}px`,
+                          paddingRight: `${pgRightPx}px`,
+                          boxSizing: 'border-box',
+                        }}
+                      >
                   <div className="flex-1 flex flex-col justify-start">
                     {/* Header Bar */}
                     <div className="flex items-center justify-between text-xs mb-6 pb-2 border-b border-slate-200/80">
@@ -779,9 +780,12 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                     renderSignaturesAndSeal()
                   )}
                 </div>
-              </div>
+              </>
             );
-          })}
+          })()}
+        </div>
+      );
+    })}
       </div>
     </div>
   );
