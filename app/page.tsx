@@ -27,7 +27,23 @@ export default function Home() {
     const savedDoc = localStorage.getItem('spiderx_letterhead_doc');
     if (savedDoc) {
       try {
-        setDocument(JSON.parse(savedDoc));
+        const parsed = JSON.parse(savedDoc);
+        setDocument({
+          ...DEFAULT_DOCUMENT,
+          ...parsed,
+          recipient: {
+            ...DEFAULT_DOCUMENT.recipient,
+            ...(parsed.recipient || {}),
+          },
+          body: {
+            ...DEFAULT_DOCUMENT.body,
+            ...(parsed.body || {}),
+          },
+          signatory: {
+            ...DEFAULT_DOCUMENT.signatory,
+            ...(parsed.signatory || {}),
+          },
+        });
       } catch (err) {
         console.error('Failed to parse saved document data:', err);
       }
@@ -43,6 +59,19 @@ export default function Home() {
       setSidebarWidth(Number(savedWidth));
     }
   }, []);
+
+  // Synchronize active theme to document.documentElement (.dark class and colorScheme)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (theme === 'dark') {
+        window.document.documentElement.classList.add('dark');
+        window.document.documentElement.style.colorScheme = 'dark';
+      } else {
+        window.document.documentElement.classList.remove('dark');
+        window.document.documentElement.style.colorScheme = 'light';
+      }
+    }
+  }, [theme]);
 
   // Save document changes to LocalStorage
   const handleDocumentChange = (updated: DocumentData) => {

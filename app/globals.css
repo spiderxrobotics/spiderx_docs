@@ -227,3 +227,334 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #7f469b;
 }
+
+/* ==========================================================================
+   PRINT / PDF GENERATION ENGINE RULES
+   Isolates the A4 Canvas Letterhead Paper & Hides All Editor UI Controls
+   ========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  /* Completely remove header navbar, sidebar controls, dialogs & guide overlays */
+  .no-print,
+  header,
+  aside,
+  button,
+  [role="dialog"],
+  .bg-canvas-grid {
+    display: none !important;
+  }
+
+  /* Reset document root & html body container */
+  html,
+  body {
+    width: 210mm !important;
+    height: auto !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Reset main layout flex wrapper */
+  main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  main > div {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Reset scrollable canvas section container */
+  section {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    display: block !important;
+    box-shadow: none !important;
+  }
+
+  .no-print-padding {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  /* Reset zoom wrapper scale transform so print output is exact 1:1 A4 */
+  .a4-zoom-wrapper {
+    transform: none !important;
+    width: 210mm !important;
+    margin: 0 auto !important;
+    gap: 0 !important;
+    display: block !important;
+  }
+
+  /* Precise A4 Paper Container Dimensions (210mm x 297mm) */
+  .a4-container {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background-color: #ffffff !important;
+    overflow: hidden !important;
+    position: relative !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove blank page break after final page */
+  .a4-container:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+
+/* Quill Rich Text Editor Custom Dark & Light Theme Styling */
+.spiderx-quill-wrapper .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+  padding: 6px;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.spiderx-quill-wrapper .ql-container.ql-snow {
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  background-color: var(--background);
+  color: var(--foreground);
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.spiderx-quill-wrapper .ql-editor {
+  min-height: 100px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.spiderx-quill-wrapper .ql-editor.ql-blank::before {
+  color: var(--muted-foreground);
+  font-style: normal;
+  font-size: 0.75rem;
+  left: 12px;
+}
+
+.dark .spiderx-quill-wrapper .ql-stroke {
+  stroke: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-fill {
+  fill: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-picker {
+  color: var(--foreground) !important;
+}
+
+.dark .spiderx-quill-wrapper .ql-picker-options {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.spiderx-quill-wrapper .ql-toolbar button:hover .ql-stroke,
+.spiderx-quill-wrapper .ql-toolbar button.ql-active .ql-stroke {
+  stroke: #7f469b !important;
+}
+
+.spiderx-quill-wrapper .ql-toolbar button:hover .ql-fill,
+.spiderx-quill-wrapper .ql-toolbar button.ql-active .ql-fill {
+  fill: #7f469b !important;
+}
+
+/* SpiderX Canvas Quill HTML Content Styling */
+.spiderx-canvas-content p {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.45;
+}
+
+.spiderx-canvas-content h1 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 0.25rem;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content h2 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  margin-bottom: 0.375rem;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.125rem;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-style: italic;
+  margin-top: 0.375rem;
+  margin-bottom: 0.25rem;
+  color: #1e293b;
+}
+
+.spiderx-canvas-content strong {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.spiderx-canvas-content em {
+  font-style: italic;
+}
+
+.spiderx-canvas-content u {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.spiderx-canvas-content ul,
+.spiderx-canvas-content ol {
+  padding-left: 1.5rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.spiderx-canvas-content ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+}
+
+.spiderx-canvas-content ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+}
+
+.spiderx-canvas-content li {
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.35rem !important;
+  padding-left: 0.25rem !important;
+  line-height: 1.5 !important;
+  color: #1e293b !important;
+}
+
+/* Quill Text Alignment Styles for Letterhead Canvas */
+.spiderx-canvas-content .ql-align-center,
+.spiderx-canvas-content p.ql-align-center,
+.spiderx-canvas-content h1.ql-align-center,
+.spiderx-canvas-content h2.ql-align-center,
+.spiderx-canvas-content h3.ql-align-center,
+.spiderx-canvas-content h4.ql-align-center,
+.spiderx-canvas-content div.ql-align-center {
+  text-align: center !important;
+}
+
+.spiderx-canvas-content .ql-align-right,
+.spiderx-canvas-content p.ql-align-right,
+.spiderx-canvas-content h1.ql-align-right,
+.spiderx-canvas-content h2.ql-align-right,
+.spiderx-canvas-content h3.ql-align-right,
+.spiderx-canvas-content h4.ql-align-right,
+.spiderx-canvas-content div.ql-align-right {
+  text-align: right !important;
+}
+
+.spiderx-canvas-content .ql-align-justify,
+.spiderx-canvas-content p.ql-align-justify,
+.spiderx-canvas-content h1.ql-align-justify,
+.spiderx-canvas-content h2.ql-align-justify,
+.spiderx-canvas-content h3.ql-align-justify,
+.spiderx-canvas-content h4.ql-align-justify,
+.spiderx-canvas-content div.ql-align-justify {
+  text-align: justify !important;
+}
+
+.spiderx-canvas-content .ql-align-left,
+.spiderx-canvas-content p.ql-align-left,
+.spiderx-canvas-content h1.ql-align-left,
+.spiderx-canvas-content h2.ql-align-left,
+.spiderx-canvas-content h3.ql-align-left,
+.spiderx-canvas-content h4.ql-align-left,
+.spiderx-canvas-content div.ql-align-left {
+  text-align: left !important;
+}
+
+/* Table Styles for Letterhead Canvas */
+.spiderx-canvas-content table,
+.spiderx-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  font-size: 0.75rem !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.375rem !important;
+  overflow: hidden !important;
+}
+
+.spiderx-canvas-content th,
+.spiderx-table th {
+  background-color: rgba(127, 70, 155, 0.08) !important;
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  padding: 0.4rem 0.6rem !important;
+  border: 1px solid #cbd5e1 !important;
+  text-align: left !important;
+}
+
+.spiderx-canvas-content td,
+.spiderx-table td {
+  padding: 0.4rem 0.6rem !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Custom Button Animations & Transitions */
+@keyframes buttonGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(127, 70, 155, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(127, 70, 155, 0.55);
+  }
+}
+
+.btn-glow {
+  animation: buttonGlowPulse 3s infinite ease-in-out;
+}
+
+

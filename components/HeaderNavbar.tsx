@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon } from 'lucide-react';
+import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { exportLetterheadToPdf } from '@/utils/pdfExporter';
 
 interface HeaderNavbarProps {
   document: DocumentData;
@@ -21,6 +22,8 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   onImportJson,
   onPrint,
 }) => {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   // Export JSON backup file
   const handleExportJson = () => {
     const jsonString = JSON.stringify(document, null, 2);
@@ -49,6 +52,17 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  // Direct PDF Download Handler
+  const handleDirectPdfDownload = async () => {
+    setIsExportingPdf(true);
+    try {
+      const safeTitle = document.title ? document.title.replace(/[^a-zA-Z0-9_-]/g, '_') : 'SpiderX_Letterhead';
+      await exportLetterheadToPdf(`${safeTitle}.pdf`);
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -105,11 +119,11 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           variant="outline"
           size="sm"
           onClick={handleExportJson}
-          className="gap-1.5 text-xs font-semibold rounded-md"
+          className="gap-1.5 text-xs font-semibold rounded-md hidden lg:flex"
           title="Backup document to JSON"
         >
           <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Export JSON</span>
+          <span>Export JSON</span>
         </Button>
 
         {/* Import JSON */}
@@ -117,12 +131,12 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           variant="outline"
           size="sm"
           asChild
-          className="gap-1.5 text-xs font-semibold cursor-pointer rounded-md"
+          className="gap-1.5 text-xs font-semibold cursor-pointer rounded-md hidden lg:flex"
           title="Restore document from JSON"
         >
           <label>
             <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Import JSON</span>
+            <span>Import JSON</span>
             <input
               type="file"
               accept=".json"
@@ -132,12 +146,35 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           </label>
         </Button>
 
+        {/* Direct PDF File Download */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDirectPdfDownload}
+          disabled={isExportingPdf}
+          className="gap-1.5 text-xs font-bold rounded-md border-[#7f469b]/40 text-[#7f469b] hover:bg-[#7f469b]/10 dark:text-[#a862c8]"
+          title="Download high-resolution PDF file directly"
+        >
+          {isExportingPdf ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span className="hidden sm:inline">Generating PDF...</span>
+            </>
+          ) : (
+            <>
+              <FileDown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Download PDF</span>
+            </>
+          )}
+        </Button>
+
         {/* Print / Save PDF Primary Action */}
         <Button
           variant="gradient"
           size="sm"
           onClick={onPrint}
-          className="gap-2 px-4 md:px-5 text-xs font-extrabold rounded-md"
+          className="gap-2 px-4 md:px-5 text-xs font-extrabold rounded-md shadow-xs"
+          title="Open browser print dialog to print or save as PDF"
         >
           <Printer className="w-4 h-4" />
           <span>PRINT / SAVE PDF</span>
