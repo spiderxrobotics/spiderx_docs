@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import { X, Check, RotateCcw } from 'lucide-react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { X, Check, RotateCcw, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SignaturePadModalProps {
@@ -23,6 +23,11 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
   const [strokeColor, setStrokeColor] = useState('#0f172a');
   const [strokeWidth, setStrokeWidth] = useState(3);
 
+  // Stroke History Stack for Single-Stroke Undo/Redo
+  const [history, setHistory] = useState<ImageData[]>([]);
+  const [redoStack, setRedoStack] = useState<ImageData[]>([]);
+
+  // Initialize Canvas stroke styles
   useEffect(() => {
     if (isOpen && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -36,17 +41,27 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
     }
   }, [isOpen, strokeColor, strokeWidth]);
 
-  if (!isOpen) return null;
+  // Save current canvas snapshot into history stack
+  const saveSnapshot = useCallback(() => {
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory((prev) => [...prev, snapshot]);
+    setRedoStack([]); // Clear redo stack on new stroke
+  }, []);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    saveSnapshot();
     setIsDrawing(true);
     setIsEmpty(false);
     draw(e);
   };
 
   const stopDrawing = () => {
-    setIsDrawing(false);
-    if (canvasRef.current) {
+    if (isDrawing && canvasRef.current) {
+      setIsDrawing(false);
       const ctx = canvasRef.current.getContext('2d');
       if (ctx) ctx.beginPath();
     }
@@ -81,12 +96,77 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
     ctx.moveTo(x, y);
   };
 
+  // Undo last stroke (Ctrl+Z)
+  const handleUndo = useCallback(() => {
+    if (history.length === 0 || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Save current state to redo stack
+    const currentSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setRedoStack((prev) => [...prev, currentSnapshot]);
+
+    // Pop last state from history
+    const newHistory = [...history];
+    const previousSnapshot = newHistory.pop();
+    setHistory(newHistory);
+
+    if (previousSnapshot) {
+      ctx.putImageData(previousSnapshot, 0, 0);
+      setIsEmpty(newHistory.length === 0);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setIsEmpty(true);
+    }
+  }, [history]);
+
+  // Redo stroke
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0 || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Save current state to history
+    const currentSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory((prev) => [...prev, currentSnapshot]);
+
+    // Pop from redo stack
+    const newRedoStack = [...redoStack];
+    const nextSnapshot = newRedoStack.pop();
+    setRedoStack(newRedoStack);
+
+    if (nextSnapshot) {
+      ctx.putImageData(nextSnapshot, 0, 0);
+      setIsEmpty(false);
+    }
+  }, [redoStack]);
+
+  // Keyboard Ctrl+Z listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleUndo, handleRedo]);
+
   const handleClear = () => {
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         setIsEmpty(true);
+        setHistory([]);
+        setRedoStack([]);
       }
     }
   };
@@ -98,6 +178,8 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
       onClose();
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-200">
@@ -145,7 +227,7 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
             )}
           </div>
 
-          {/* Stroke Controls */}
+          {/* Stroke Controls & Undo/Redo Buttons */}
           <div className="flex items-center justify-between w-full text-xs text-muted-foreground px-1">
             <div className="flex items-center gap-3">
               <span>Ink Color:</span>
@@ -192,14 +274,38 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
 
         {/* Modal Footer */}
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-border bg-card">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClear}
-            className="text-xs text-muted-foreground hover:text-destructive gap-1.5 rounded-md"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Clear Canvas
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleUndo}
+              disabled={history.length === 0}
+              className="text-xs gap-1 rounded-md px-2.5"
+              title="Undo Stroke (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" /> Undo
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRedo}
+              disabled={redoStack.length === 0}
+              className="text-xs gap-1 rounded-md px-2.5"
+              title="Redo Stroke"
+            >
+              <Redo2 className="w-3.5 h-3.5" /> Redo
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClear}
+              className="text-xs text-muted-foreground hover:text-destructive gap-1 rounded-md px-2 ml-1"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Clear
+            </Button>
+          </div>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onClose} className="text-xs rounded-md">

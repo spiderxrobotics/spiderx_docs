@@ -2,18 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { DEFAULT_DOCUMENT } from '@/utils/defaultTemplates';
 import { HeaderNavbar } from '@/components/HeaderNavbar';
 import { ControlsSidebar } from '@/components/ControlsSidebar';
 import { LetterheadCanvas } from '@/components/LetterheadCanvas';
 import { SignaturePadModal } from '@/components/SignaturePadModal';
+import { useDocumentStorage } from '@/hooks/useDocumentStorage';
 
 export default function Home() {
-  // Main state holding all letterhead document configuration
-  const [document, setDocument] = useState<DocumentData>(DEFAULT_DOCUMENT);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const {
+    document,
+    updateDocument,
+    saveStatus,
+    resetToDefault,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useDocumentStorage();
 
-  // Viewport & Layout preferences
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [zoomScale, setZoomScale] = useState<number>(0.9);
   const [sidebarWidth, setSidebarWidth] = useState<number>(380);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -22,33 +29,8 @@ export default function Home() {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
   const [activeDirectorTarget, setActiveDirectorTarget] = useState<1 | 2>(1);
 
-  // Load saved preferences on mount
+  // Load saved theme & sidebar preferences on mount
   useEffect(() => {
-    const savedDoc = localStorage.getItem('spiderx_letterhead_doc');
-    if (savedDoc) {
-      try {
-        const parsed = JSON.parse(savedDoc);
-        setDocument({
-          ...DEFAULT_DOCUMENT,
-          ...parsed,
-          recipient: {
-            ...DEFAULT_DOCUMENT.recipient,
-            ...(parsed.recipient || {}),
-          },
-          body: {
-            ...DEFAULT_DOCUMENT.body,
-            ...(parsed.body || {}),
-          },
-          signatory: {
-            ...DEFAULT_DOCUMENT.signatory,
-            ...(parsed.signatory || {}),
-          },
-        });
-      } catch (err) {
-        console.error('Failed to parse saved document data:', err);
-      }
-    }
-
     const savedTheme = localStorage.getItem('spiderx_theme') as 'light' | 'dark';
     if (savedTheme) {
       setTheme(savedTheme);
@@ -73,12 +55,6 @@ export default function Home() {
     }
   }, [theme]);
 
-  // Save document changes to LocalStorage
-  const handleDocumentChange = (updated: DocumentData) => {
-    setDocument(updated);
-    localStorage.setItem('spiderx_letterhead_doc', JSON.stringify(updated));
-  };
-
   // Light / Dark Theme toggle
   const handleToggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -101,7 +77,7 @@ export default function Home() {
   // Signature save handler from Modal
   const handleSaveSignature = (dataUrl: string, targetDirector: 1 | 2 = 1) => {
     if (targetDirector === 2) {
-      handleDocumentChange({
+      updateDocument({
         ...document,
         signatory: {
           ...document.signatory,
@@ -110,7 +86,7 @@ export default function Home() {
         },
       });
     } else {
-      handleDocumentChange({
+      updateDocument({
         ...document,
         signatory: {
           ...document.signatory,
@@ -121,17 +97,20 @@ export default function Home() {
     }
   };
 
+  // Toggle alignment guides from floating toolbar
+  const handleToggleAlignmentGuides = () => {
+    updateDocument({
+      ...document,
+      layout: {
+        ...document.layout,
+        showAlignmentGuides: !document.layout.showAlignmentGuides,
+      },
+    });
+  };
+
   // Print & PDF Export trigger
   const handlePrint = () => {
     window.print();
-  };
-
-  // Reset to default SpiderX configuration
-  const handleResetDefault = () => {
-    if (confirm('Are you sure you want to reset all document fields to SpiderX defaults?')) {
-      setDocument(DEFAULT_DOCUMENT);
-      localStorage.removeItem('spiderx_letterhead_doc');
-    }
   };
 
   return (
@@ -140,8 +119,13 @@ export default function Home() {
       <HeaderNavbar
         document={document}
         theme={theme}
+        saveStatus={saveStatus}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
         onToggleTheme={handleToggleTheme}
-        onImportJson={handleDocumentChange}
+        onImportJson={updateDocument}
         onPrint={handlePrint}
       />
 
@@ -150,11 +134,11 @@ export default function Home() {
         {/* Fixed Controls Sidebar */}
         <ControlsSidebar
           document={document}
-          onChange={handleDocumentChange}
+          onChange={updateDocument}
           onOpenSignatureModal={handleOpenSignatureModal}
           zoomScale={zoomScale}
           onZoomChange={setZoomScale}
-          onResetDefault={handleResetDefault}
+          onResetDefault={resetToDefault}
           width={sidebarWidth}
           onWidthChange={handleSidebarWidthChange}
           isCollapsed={isSidebarCollapsed}
@@ -163,7 +147,12 @@ export default function Home() {
 
         {/* Scrollable Center Workbench Canvas Area with ReactFlow Dot Grid */}
         <section className="flex-1 h-full bg-canvas-grid border-l border-border overflow-y-auto overflow-x-auto flex items-start justify-center p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-border">
-          <LetterheadCanvas document={document} zoomScale={zoomScale} />
+          <LetterheadCanvas
+            document={document}
+            zoomScale={zoomScale}
+            onZoomChange={setZoomScale}
+            onToggleAlignmentGuides={handleToggleAlignmentGuides}
+          />
         </section>
       </div>
 

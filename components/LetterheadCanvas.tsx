@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DocumentData, DocumentPage } from '@/types/letterhead';
+import { ZoomIn, ZoomOut, Maximize2, Minimize2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 
 interface LetterheadCanvasProps {
   document: DocumentData;
   zoomScale: number;
+  onZoomChange?: (zoom: number) => void;
+  onToggleAlignmentGuides?: () => void;
 }
 
 /**
@@ -95,8 +98,13 @@ const renderFormattedContent = (content: string, keyPrefix: string = 'text') => 
 export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   document: doc,
   zoomScale,
+  onZoomChange,
+  onToggleAlignmentGuides,
 }) => {
   const { layout, recipient, body, signatory, refNumber, date } = doc;
+  const page1ContentRef = useRef<HTMLDivElement | null>(null);
+  const [overflowMm, setOverflowMm] = useState<number>(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Conversion: 1mm approx 3.7795px at 96 DPI
   const mmToPx = (mm: number) => Math.round(mm * 3.7795);
@@ -107,6 +115,21 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   const rightPx = mmToPx(layout.paddingRightMm);
 
   const isMultiPage = body.multiPage?.enableMultiPage ?? false;
+
+  // Measure Page 1 height overflow
+  useEffect(() => {
+    if (page1ContentRef.current) {
+      const scrollH = page1ContentRef.current.scrollHeight;
+      const totalPageH = mmToPx(297);
+      const availableH = totalPageH - topPx - bottomPx;
+      const overflow = scrollH - availableH;
+      if (overflow > 15) {
+        setOverflowMm(Math.round(overflow / 3.7795));
+      } else {
+        setOverflowMm(0);
+      }
+    }
+  }, [doc, topPx, bottomPx]);
   
   // Resolve pages list (support fallback from legacy page2Paragraphs)
   let additionalPages: DocumentPage[] = body.multiPage?.pages || [];
@@ -121,6 +144,17 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   }
 
   const totalPages = isMultiPage && additionalPages.length > 0 ? 1 + additionalPages.length : 1;
+
+  // Toggle Fullscreen Mode
+  const toggleFullscreen = () => {
+    if (!window.document.fullscreenElement) {
+      window.document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      window.document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
 
   // Helper render for Director Signatures & Company Seal
   const renderSignaturesAndSeal = () => {
@@ -277,7 +311,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   };
 
   return (
-    <div className="w-full flex justify-center py-4 no-print-padding select-none">
+    <div className="w-full flex justify-center py-4 no-print-padding select-none relative">
       {/* Zoom Container Wrapper */}
       <div
         className="a4-zoom-wrapper transition-transform origin-top duration-200 flex flex-col gap-8 items-center print:gap-0 print:transform-none"
@@ -294,24 +328,62 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
             width: '210mm',
             minHeight: '297mm',
             height: '297mm',
+            maxHeight: '297mm',
             fontFamily: layout.fontFamily || 'Inter',
             fontSize: `${layout.fontSizePt || 10.5}pt`,
             lineHeight: layout.lineHeight || 1.45,
             boxSizing: 'border-box',
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: '#ffffff',
           }}
         >
-          {/* Background Letterhead Image Overlay */}
+          {/* Height Overflow Warning Pill */}
+          {!isMultiPage && overflowMm > 0 && (
+            <div className="no-print absolute top-0 left-0 right-0 z-30 bg-amber-500 text-white text-[11px] font-bold px-3 py-1 flex items-center justify-between shadow-md animate-in fade-in">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-white" />
+                Page 1 Content Exceeds Printable Area by ~{overflowMm}mm
+              </span>
+              <span className="text-[10px] font-normal opacity-90">
+                Enable Multi-Page setup or adjust clearance margins
+              </span>
+            </div>
+          )}
+
+          {/* Background Letterhead Image Overlay with Strict Inline CSS Styling */}
           {layout.showLetterheadBackground && layout.letterheadImage && (
             <div
               className={`absolute inset-0 pointer-events-none z-0 ${
                 layout.includeLetterheadInPrint ? '' : 'no-print'
               }`}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '210mm',
+                height: '297mm',
+                zIndex: 0,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={layout.letterheadImage}
                 alt="Letterhead Overlay"
                 className="w-full h-full object-cover select-none"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                }}
               />
             </div>
           )}
@@ -351,6 +423,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
 
           {/* Page 1 Document Body */}
           <div
+            ref={page1ContentRef}
             className="relative z-20 flex flex-col justify-between h-full text-slate-900"
             style={{
               paddingTop: `${topPx}px`,
@@ -358,6 +431,8 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
               paddingLeft: `${leftPx}px`,
               paddingRight: `${rightPx}px`,
               boxSizing: 'border-box',
+              position: 'relative',
+              zIndex: 20,
             }}
           >
             <div className="flex-1 flex flex-col justify-start">
@@ -565,24 +640,49 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   width: '210mm',
                   minHeight: '297mm',
                   height: '297mm',
+                  maxHeight: '297mm',
                   fontFamily: layout.fontFamily || 'Inter',
                   fontSize: `${layout.fontSizePt || 10.5}pt`,
                   lineHeight: layout.lineHeight || 1.45,
                   boxSizing: 'border-box',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff',
                 }}
               >
-                {/* Background Image Overlay */}
+                {/* Background Image Overlay with Strict Inline CSS Styling */}
                 {layout.showLetterheadBackground && layout.letterheadImage && (
                   <div
                     className={`absolute inset-0 pointer-events-none z-0 ${
                       layout.includeLetterheadInPrint ? '' : 'no-print'
                     }`}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      width: '210mm',
+                      height: '297mm',
+                      zIndex: 0,
+                      overflow: 'hidden',
+                      pointerEvents: 'none',
+                    }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={layout.letterheadImage}
                       alt={`Letterhead Overlay Page ${pageNum}`}
                       className="w-full h-full object-cover select-none"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                      }}
                     />
                   </div>
                 )}
@@ -643,6 +743,8 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                           paddingLeft: `${pgLeftPx}px`,
                           paddingRight: `${pgRightPx}px`,
                           boxSizing: 'border-box',
+                          position: 'relative',
+                          zIndex: 20,
                         }}
                       >
                   <div className="flex-1 flex flex-col justify-start">
@@ -786,6 +888,62 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
         </div>
       );
     })}
+      </div>
+
+      {/* Floating Canvas Viewport Control Widget */}
+      <div className="no-print fixed bottom-6 right-6 z-40 bg-card/90 backdrop-blur-md border border-border shadow-xl rounded-full px-3 py-1.5 flex items-center gap-2 text-xs select-none animate-in fade-in slide-in-from-bottom-2">
+        <button
+          type="button"
+          onClick={() => onZoomChange && onZoomChange(Math.max(0.5, zoomScale - 0.1))}
+          className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition"
+          title="Zoom Out (-10%)"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onZoomChange && onZoomChange(0.9)}
+          className="font-mono text-[11px] font-bold text-[#7f469b] dark:text-[#a862c8] px-1.5 hover:underline"
+          title="Reset Zoom to 90%"
+        >
+          {Math.round(zoomScale * 100)}%
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onZoomChange && onZoomChange(Math.min(1.5, zoomScale + 0.1))}
+          className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition"
+          title="Zoom In (+10%)"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </button>
+
+        <div className="w-[1px] h-4 bg-border my-auto" />
+
+        {onToggleAlignmentGuides && (
+          <button
+            type="button"
+            onClick={onToggleAlignmentGuides}
+            className={`p-1.5 rounded-full transition ${
+              layout.showAlignmentGuides
+                ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            }`}
+            title="Toggle Visual Alignment Guides"
+          >
+            {layout.showAlignmentGuides ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition"
+          title="Toggle Fullscreen Workbench Mode"
+        >
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+        </button>
       </div>
     </div>
   );
