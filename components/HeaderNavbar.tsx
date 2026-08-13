@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2 } from 'lucide-react';
+import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { exportLetterheadToPdf } from '@/utils/pdfExporter';
@@ -10,6 +10,11 @@ import { exportLetterheadToPdf } from '@/utils/pdfExporter';
 interface HeaderNavbarProps {
   document: DocumentData;
   theme: 'light' | 'dark';
+  saveStatus?: 'saved' | 'editing' | 'restored';
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
   onToggleTheme: () => void;
   onImportJson: (data: DocumentData) => void;
   onPrint: () => void;
@@ -18,6 +23,11 @@ interface HeaderNavbarProps {
 export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   document,
   theme,
+  saveStatus = 'saved',
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
   onToggleTheme,
   onImportJson,
   onPrint,
@@ -84,15 +94,60 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             <Badge variant="purple" className="text-[10px] font-mono">
               v1.0 Studio
             </Badge>
+
+            {/* Live Auto-Save Status Pill */}
+            <div className="hidden sm:flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-border bg-muted/50 text-muted-foreground">
+              {saveStatus === 'editing' ? (
+                <>
+                  <Loader2 className="w-3 h-3 text-[#7f469b] animate-spin" />
+                  <span className="text-[#7f469b]">Saving...</span>
+                </>
+              ) : saveStatus === 'restored' ? (
+                <>
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span className="text-amber-600 dark:text-amber-400">Restored Draft</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3 h-3 text-emerald-500" />
+                  <span>Saved locally</span>
+                </>
+              )}
+            </div>
           </div>
-          <p className="text-[11px] text-muted-foreground hidden sm:block">
+          <p className="text-[11px] text-muted-foreground hidden lg:block">
             Letterhead Alignment & Director Signature Document Studio
           </p>
         </div>
       </div>
 
-      {/* Action Buttons & Theme Toggle */}
-      <div className="flex items-center gap-2 md:gap-3">
+      {/* Action Buttons & History Controls */}
+      <div className="flex items-center gap-1.5 md:gap-3">
+        {/* Document History Undo / Redo */}
+        <div className="hidden md:flex items-center gap-1 border-r border-border pr-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="h-8 w-8 p-0 rounded-md text-muted-foreground hover:text-foreground"
+            title="Undo Document Edit (Ctrl+Z)"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="h-8 w-8 p-0 rounded-md text-muted-foreground hover:text-foreground"
+            title="Redo Document Edit (Ctrl+Y)"
+          >
+            <Redo2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+
         {/* Light / Dark Mode Toggle Button */}
         <Button
           variant="outline"
