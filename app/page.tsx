@@ -6,10 +6,13 @@ import { HeaderNavbar } from '@/components/HeaderNavbar';
 import { ControlsSidebar } from '@/components/ControlsSidebar';
 import { LetterheadCanvas } from '@/components/LetterheadCanvas';
 import { SignaturePadModal } from '@/components/SignaturePadModal';
+import { AccountLoginModal, UserRole } from '@/components/AccountLoginModal';
 import { useDocumentStorage } from '@/hooks/useDocumentStorage';
 
 export default function Home() {
   const {
+    userRole,
+    switchUserRole,
     document,
     updateDocument,
     saveStatus,
@@ -24,6 +27,9 @@ export default function Home() {
   const [zoomScale, setZoomScale] = useState<number>(0.9);
   const [sidebarWidth, setSidebarWidth] = useState<number>(380);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  // Login Modal state
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
 
   // Signature Modal state
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
@@ -108,22 +114,24 @@ export default function Home() {
     });
   };
 
-  // Print & PDF Export trigger
+  // Browser print trigger
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <main className={`${theme} h-screen max-h-screen overflow-hidden bg-background flex flex-col font-sans text-foreground antialiased transition-colors duration-200`}>
+    <main className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200">
       {/* Top Header Navbar */}
       <HeaderNavbar
         document={document}
         theme={theme}
+        userRole={userRole}
         saveStatus={saveStatus}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onToggleTheme={handleToggleTheme}
         onImportJson={updateDocument}
         onPrint={handlePrint}
@@ -155,6 +163,14 @@ export default function Home() {
           />
         </section>
       </div>
+
+      {/* Account Profile Login Switcher Modal */}
+      <AccountLoginModal
+        isOpen={isLoginModalOpen}
+        currentRole={userRole}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSelectRole={switchUserRole}
+      />
 
       {/* Signature Modal */}
       <SignaturePadModal
