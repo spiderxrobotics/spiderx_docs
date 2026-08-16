@@ -19,10 +19,11 @@ export function useDocumentStorage() {
   const [historyStack, setHistoryStack] = useState<DocumentData[]>([]);
   const [redoStack, setRedoStack] = useState<DocumentData[]>([]);
 
-  // Load saved document & library on mount
+  // Load saved document state on mount
   useEffect(() => {
     try {
       const savedDocStr = localStorage.getItem('spiderx_letterhead_doc');
+
       if (savedDocStr) {
         const parsed = JSON.parse(savedDocStr);
         setDocumentState({
@@ -74,7 +75,7 @@ export function useDocumentStorage() {
     const previous = historyStack[historyStack.length - 1];
     const newHistory = historyStack.slice(0, historyStack.length - 1);
 
-    setRedoStack((prev) => [...prev, document]);
+    setRedoStack((prev) => [document, ...prev]);
     setHistoryStack(newHistory);
     setDocumentState(previous);
     setSaveStatus('saved');
@@ -103,7 +104,6 @@ export function useDocumentStorage() {
   // Keyboard shortcut listener for Ctrl+Z and Ctrl+Y
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept inside text inputs or textareas if default behavior expected
       const activeEl = window.document.activeElement;
       const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || (activeEl as HTMLElement).isContentEditable);
       
@@ -128,38 +128,53 @@ export function useDocumentStorage() {
   }, [undo, redo]);
 
   // Save current document to saved library
-  const saveToLibrary = useCallback((name?: string) => {
-    const docTitle = name || document.title || 'Untitled Document';
-    const newItem: SavedDocumentItem = {
-      id: `doc-${Date.now()}`,
-      title: docTitle,
-      refNumber: document.refNumber || 'REF: UNTITLED',
-      updatedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      data: document,
-    };
+  const saveToLibrary = useCallback(
+    (name?: string) => {
+      const docTitle = name || document.title || 'Untitled Document';
+      const newItem: SavedDocumentItem = {
+        id: `doc-${Date.now()}`,
+        title: docTitle,
+        refNumber: document.refNumber || 'REF: UNTITLED',
+        updatedAt: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        data: document,
+      };
 
-    const updatedLib = [newItem, ...savedLibrary.filter((x) => x.id !== newItem.id)];
-    setSavedLibrary(updatedLib);
-    try {
-      localStorage.setItem('spiderx_docs_saved_library', JSON.stringify(updatedLib));
-    } catch (err) {
-      console.error('Failed to save to library:', err);
-    }
-  }, [document, savedLibrary]);
+      const updatedLib = [newItem, ...savedLibrary.filter((x) => x.id !== newItem.id)];
+      setSavedLibrary(updatedLib);
+      try {
+        localStorage.setItem('spiderx_docs_saved_library', JSON.stringify(updatedLib));
+      } catch (err) {
+        console.error('Failed to save to library:', err);
+      }
+    },
+    [document, savedLibrary]
+  );
 
   // Load document item from saved library
-  const loadFromLibrary = useCallback((item: SavedDocumentItem) => {
-    updateDocument(item.data);
-  }, [updateDocument]);
+  const loadFromLibrary = useCallback(
+    (item: SavedDocumentItem) => {
+      updateDocument(item.data);
+    },
+    [updateDocument]
+  );
 
   // Delete item from saved library
-  const deleteFromLibrary = useCallback((id: string) => {
-    const updatedLib = savedLibrary.filter((x) => x.id !== id);
-    setSavedLibrary(updatedLib);
-    try {
-      localStorage.setItem('spiderx_docs_saved_library', JSON.stringify(updatedLib));
-    } catch {}
-  }, [savedLibrary]);
+  const deleteFromLibrary = useCallback(
+    (id: string) => {
+      const updatedLib = savedLibrary.filter((x) => x.id !== id);
+      setSavedLibrary(updatedLib);
+      try {
+        localStorage.setItem('spiderx_docs_saved_library', JSON.stringify(updatedLib));
+      } catch {}
+    },
+    [savedLibrary]
+  );
 
   // Reset to default
   const resetToDefault = useCallback(() => {

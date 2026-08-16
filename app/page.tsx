@@ -112,13 +112,13 @@ export default function Home() {
     });
   };
 
-  // Print & PDF Export trigger
+  // Browser print trigger
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <main className={`${theme} h-screen max-h-screen overflow-hidden bg-background flex flex-col font-sans text-foreground antialiased transition-colors duration-200`}>
+    <main className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200">
       {/* Top Header Navbar */}
       <HeaderNavbar
         document={document}
