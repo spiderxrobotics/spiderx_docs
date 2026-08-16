@@ -41,7 +41,10 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          updateLayout({ letterheadImage: event.target.result as string });
+          updateLayout({
+            letterheadImage: event.target.result as string,
+            showLetterheadBackground: true,
+          });
         }
       };
       reader.readAsDataURL(file);
@@ -58,7 +61,7 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
           </span>
           {document.layout.letterheadImage && (
             <button
-              onClick={() => updateLayout({ letterheadImage: null })}
+              onClick={() => updateLayout({ letterheadImage: null, showLetterheadBackground: false })}
               className="text-[11px] text-destructive hover:underline font-semibold"
             >
               Remove Image
@@ -66,18 +69,43 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-[#7f469b]/10 to-[#4d2a7c]/10 border border-[#7f469b]/30 hover:border-[#7f469b] rounded-md text-xs text-[#7f469b] dark:text-[#a862c8] font-semibold cursor-pointer transition">
-            <Upload className="w-4 h-4" />
-            <span>Upload Letterhead Image</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLetterheadImageUpload}
-              className="hidden"
-            />
-          </label>
-        </div>
+        {/* Thumbnail Preview when image is loaded */}
+        {document.layout.letterheadImage ? (
+          <div className="flex items-center gap-3 p-2 bg-muted/50 border border-border rounded-md">
+            <div className="w-10 h-14 bg-white border border-slate-300 rounded shrink-0 overflow-hidden shadow-xs relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={document.layout.letterheadImage} alt="Letterhead Thumbnail" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-foreground truncate">Letterhead Loaded</p>
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                ✓ Visible on Canvas
+              </p>
+            </div>
+            <label className="px-2.5 py-1.5 bg-accent hover:bg-accent/80 border border-border text-foreground rounded text-xs font-semibold cursor-pointer transition">
+              <span>Change</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLetterheadImageUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-gradient-to-r from-[#7f469b]/10 to-[#4d2a7c]/10 border border-[#7f469b]/30 hover:border-[#7f469b] rounded-md text-xs text-[#7f469b] dark:text-[#a862c8] font-semibold cursor-pointer transition">
+              <Upload className="w-4 h-4" />
+              <span>Upload Letterhead Image</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLetterheadImageUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
 
         {/* Toggles for Printing with Letterhead */}
         <div className="space-y-2 pt-2 border-t border-border text-xs">
@@ -120,7 +148,7 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
       <div className="bg-card border border-border rounded-lg p-4 space-y-4 shadow-xs">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            📐 Page-Based Margin Clearance (mm)
+            Page-Based Margin Clearance (mm)
           </h4>
         </div>
 

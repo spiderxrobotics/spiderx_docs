@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { PRESET_TEMPLATES, DEFAULT_SPIDERX_LETTERHEAD_BG } from '@/utils/defaultTemplates';
+import { PRESET_TEMPLATES } from '@/utils/defaultTemplates';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,9 +38,8 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
       {/* Standard Presets */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          📚 Built-In Document Presets
+          Built-In Document Presets
         </h4>
-
         <div className="space-y-2">
           {PRESET_TEMPLATES.map((preset, idx) => (
             <div
@@ -66,7 +65,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
                     layout: {
                       ...document.layout,
                       ...(preset.template.layout || {}),
-                      letterheadImage: document.layout.letterheadImage || DEFAULT_SPIDERX_LETTERHEAD_BG,
+                      letterheadImage: preset.template.layout?.letterheadImage ?? document.layout.letterheadImage ?? null,
                     },
                   })
                 }
@@ -82,7 +81,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
       {/* Custom Saved Templates */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          💾 Save Current Layout as Preset
+          Save Current Layout as Preset
         </h4>
 
         <div className="flex gap-2">

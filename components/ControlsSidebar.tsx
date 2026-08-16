@@ -7,7 +7,6 @@ import {
   UserCheck,
   FileText,
   PenTool,
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   GripVertical,
@@ -16,7 +15,6 @@ import { AlignmentTab } from './sidebar/AlignmentTab';
 import { RecipientTab } from './sidebar/RecipientTab';
 import { DocumentBodyTab } from './sidebar/DocumentBodyTab';
 import { SignatoryTab } from './sidebar/SignatoryTab';
-import { TemplatesTab } from './sidebar/TemplatesTab';
 
 interface ControlsSidebarProps {
   document: DocumentData;
@@ -43,7 +41,7 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
 }) => {
-  const [activeTab, setActiveTab] = useState<'alignment' | 'recipient' | 'body' | 'signatory' | 'templates'>('alignment');
+  const [activeTab, setActiveTab] = useState<'alignment' | 'recipient' | 'body' | 'signatory'>('alignment');
   const [isDragging, setIsDragging] = useState(false);
 
   // Resize handler via dragging right divider handle
@@ -143,21 +141,6 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
           >
             <PenTool className="w-4 h-4" />
           </button>
-
-          <button
-            onClick={() => {
-              onToggleCollapse();
-              setActiveTab('templates');
-            }}
-            className={`p-2.5 rounded-md transition ${
-              activeTab === 'templates'
-                ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            }`}
-            title="Presets"
-          >
-            <Bookmark className="w-4 h-4" />
-          </button>
         </div>
       </aside>
     );
@@ -193,17 +176,16 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <h2 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
-            {activeTab === 'alignment' && '📐 Page Layout & Clearance'}
-            {activeTab === 'recipient' && '👤 Recipient & Identifiers'}
-            {activeTab === 'body' && '📝 Document Content & Headings'}
-            {activeTab === 'signatory' && '✍️ Director Signatures & Seal'}
-            {activeTab === 'templates' && '📚 Corporate Presets & Presets'}
+            {activeTab === 'alignment' && 'Page Layout & Clearance'}
+            {activeTab === 'recipient' && 'Recipient & Identifiers'}
+            {activeTab === 'body' && 'Document Content & Headings'}
+            {activeTab === 'signatory' && 'Director Signatures & Seal'}
           </h2>
         </div>
       </div>
 
       {/* Primary Tab Navigation Buttons */}
-      <div className="grid grid-cols-5 p-2 gap-1 border-b border-border bg-muted/30 shrink-0 text-xs">
+      <div className="grid grid-cols-4 p-2 gap-1 border-b border-border bg-muted/30 shrink-0 text-xs">
         <button
           type="button"
           onClick={() => setActiveTab('alignment')}
@@ -259,20 +241,6 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
           <PenTool className="w-3.5 h-3.5 mb-1" />
           <span className="text-[10px] hidden sm:inline">Signatures</span>
         </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('templates')}
-          className={`flex flex-col items-center justify-center py-2 px-1 rounded-md transition ${
-            activeTab === 'templates'
-              ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs font-bold'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-          }`}
-          title="Presets & Backups"
-        >
-          <Bookmark className="w-3.5 h-3.5 mb-1" />
-          <span className="text-[10px] hidden sm:inline">Presets</span>
-        </button>
       </div>
 
       {/* Tab Panels Content Scroll Viewport */}
@@ -305,14 +273,6 @@ export const ControlsSidebar: React.FC<ControlsSidebarProps> = ({
             document={document}
             onChange={onChange}
             onOpenSignatureModal={onOpenSignatureModal}
-          />
-        )}
-
-        {activeTab === 'templates' && (
-          <TemplatesTab
-            document={document}
-            onChange={onChange}
-            onResetDefault={onResetDefault}
           />
         )}
       </div>

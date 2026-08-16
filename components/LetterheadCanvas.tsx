@@ -159,7 +159,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
   // Helper render for Director Signatures & Company Seal
   const renderSignaturesAndSeal = () => {
     const headerText = signatory.headerText !== undefined ? signatory.headerText : 'For and on behalf of';
-    const companyHeader = signatory.companyName || 'SPIDERX ROBOTICS PRIVATE LIMITED';
+    const companyHeader = signatory.headerCompanyName !== undefined ? signatory.headerCompanyName : (signatory.companyName || '');
 
     return (
       <div className="pt-6 mt-auto">
@@ -210,8 +210,8 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   </div>
                 )}
                 <div className="border-t border-slate-400 pt-1.5 mt-1">
-                  <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
-                  <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
+                  {signatory.name && <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>}
+                  {signatory.designation && <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>}
                   {signatory.din && (
                     <p className="text-[10px] text-slate-700 font-semibold">{signatory.din}</p>
                   )}
@@ -245,8 +245,8 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   </div>
                 )}
                 <div className="border-t border-slate-400 pt-1.5 mt-1">
-                  <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.director2Name || 'Director Name'}</p>
-                  <p className="text-[11px] text-slate-600 font-medium">{signatory.director2Designation || 'Director'}</p>
+                  {signatory.director2Name && <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.director2Name}</p>}
+                  {signatory.director2Designation && <p className="text-[11px] text-slate-600 font-medium">{signatory.director2Designation}</p>}
                   {signatory.director2Din && (
                     <p className="text-[10px] text-slate-700 font-semibold">{signatory.director2Din}</p>
                   )}
@@ -289,8 +289,8 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                 </div>
               )}
               <div className="border-t border-slate-400 pt-1.5 mt-1">
-                <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>
-                <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>
+                {signatory.name && <p className="font-bold text-slate-900 text-xs tracking-wide">{signatory.name}</p>}
+                {signatory.designation && <p className="text-[11px] text-slate-600 font-medium">{signatory.designation}</p>}
                 {signatory.din && (
                   <p className="text-[10px] text-slate-700 font-semibold">{signatory.din}</p>
                 )}
@@ -352,7 +352,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
           )}
 
           {/* Background Letterhead Image Overlay with Strict Inline CSS Styling */}
-          {layout.showLetterheadBackground && layout.letterheadImage && (
+          {layout.letterheadImage && layout.showLetterheadBackground !== false && (
             <div
               className={`absolute inset-0 pointer-events-none z-0 ${
                 layout.includeLetterheadInPrint ? '' : 'no-print'
@@ -651,7 +651,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                 }}
               >
                 {/* Background Image Overlay with Strict Inline CSS Styling */}
-                {layout.showLetterheadBackground && layout.letterheadImage && (
+                {layout.letterheadImage && layout.showLetterheadBackground !== false && (
                   <div
                     className={`absolute inset-0 pointer-events-none z-0 ${
                       layout.includeLetterheadInPrint ? '' : 'no-print'

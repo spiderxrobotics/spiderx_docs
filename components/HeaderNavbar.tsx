@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, ShieldCheck, UserCheck } from 'lucide-react';
+import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { exportLetterheadToPdf } from '@/utils/pdfExporter';
@@ -10,13 +10,12 @@ import { exportLetterheadToPdf } from '@/utils/pdfExporter';
 interface HeaderNavbarProps {
   document: DocumentData;
   theme: 'light' | 'dark';
-  userRole?: 'admin' | 'guest';
   saveStatus?: 'saved' | 'editing' | 'restored';
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
-  onOpenLoginModal?: () => void;
+  onRestore?: () => void;
   onToggleTheme: () => void;
   onImportJson: (data: DocumentData) => void;
   onPrint: () => void;
@@ -25,13 +24,12 @@ interface HeaderNavbarProps {
 export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   document,
   theme,
-  userRole = 'admin',
   saveStatus = 'saved',
   canUndo = false,
   canRedo = false,
   onUndo,
   onRedo,
-  onOpenLoginModal,
+  onRestore,
   onToggleTheme,
   onImportJson,
   onPrint,
@@ -98,25 +96,6 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             <Badge variant="purple" className="text-[10px] font-mono">
               v1.0 Studio
             </Badge>
-
-            {/* Account Role Profile Badge & Switcher */}
-            <button
-              onClick={onOpenLoginModal}
-              className="flex items-center gap-1 text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
-              title="Click to Switch Access Level (SpiderX Admin vs Custom Guest Mode)"
-            >
-              {userRole === 'admin' ? (
-                <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Admin</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  <UserCheck className="w-3 h-3" />
-                  <span>Guest Tester</span>
-                </span>
-              )}
-            </button>
 
             {/* Live Auto-Save Status Pill */}
             <div className="hidden sm:flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border border-border bg-muted/50 text-muted-foreground">
@@ -223,6 +202,20 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             />
           </label>
         </Button>
+
+        {/* Restore App Defaults */}
+        {onRestore && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRestore}
+            className="gap-1.5 text-xs font-semibold rounded-md border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 hidden sm:flex cursor-pointer"
+            title="Restore app and document back to default state"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Restore App</span>
+          </Button>
+        )}
 
         {/* Direct PDF File Download */}
         <Button

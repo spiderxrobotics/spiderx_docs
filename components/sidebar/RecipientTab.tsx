@@ -35,7 +35,7 @@ export const RecipientTab: React.FC<RecipientTabProps> = ({
     <div className="space-y-4 animate-in fade-in duration-200">
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          📌 Document Identifiers
+          Document Identifiers
         </h4>
 
         <div className="space-y-3 text-xs">
@@ -76,7 +76,7 @@ export const RecipientTab: React.FC<RecipientTabProps> = ({
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            👤 Recipient Address Details
+            Recipient Address Details
           </h4>
           <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
             <input

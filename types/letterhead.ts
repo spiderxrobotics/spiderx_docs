@@ -13,6 +13,7 @@ export interface RecipientInfo {
 export interface DirectorSignatory {
   mode: 'single' | 'dual'; // 1 Director vs 2 Directors (Dual Signatures)
   headerText?: string; // e.g. "For and on behalf of"
+  headerCompanyName?: string; // Top header company name above signatures (e.g. "SPIDERX ROBOTICS PRIVATE LIMITED")
   
   // Director 1 Credentials
   name: string;

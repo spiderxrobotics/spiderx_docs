@@ -6,13 +6,11 @@ import { HeaderNavbar } from '@/components/HeaderNavbar';
 import { ControlsSidebar } from '@/components/ControlsSidebar';
 import { LetterheadCanvas } from '@/components/LetterheadCanvas';
 import { SignaturePadModal } from '@/components/SignaturePadModal';
-import { AccountLoginModal, UserRole } from '@/components/AccountLoginModal';
+import { ResetConfirmationModal } from '@/components/ResetConfirmationModal';
 import { useDocumentStorage } from '@/hooks/useDocumentStorage';
 
 export default function Home() {
   const {
-    userRole,
-    switchUserRole,
     document,
     updateDocument,
     saveStatus,
@@ -28,8 +26,8 @@ export default function Home() {
   const [sidebarWidth, setSidebarWidth] = useState<number>(380);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
-  // Login Modal state
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
+  // Reset Confirmation Modal state
+  const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
 
   // Signature Modal state
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
@@ -125,13 +123,12 @@ export default function Home() {
       <HeaderNavbar
         document={document}
         theme={theme}
-        userRole={userRole}
         saveStatus={saveStatus}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
-        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onRestore={() => setIsResetModalOpen(true)}
         onToggleTheme={handleToggleTheme}
         onImportJson={updateDocument}
         onPrint={handlePrint}
@@ -146,7 +143,7 @@ export default function Home() {
           onOpenSignatureModal={handleOpenSignatureModal}
           zoomScale={zoomScale}
           onZoomChange={setZoomScale}
-          onResetDefault={resetToDefault}
+          onResetDefault={() => setIsResetModalOpen(true)}
           width={sidebarWidth}
           onWidthChange={handleSidebarWidthChange}
           isCollapsed={isSidebarCollapsed}
@@ -164,12 +161,11 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Account Profile Login Switcher Modal */}
-      <AccountLoginModal
-        isOpen={isLoginModalOpen}
-        currentRole={userRole}
-        onClose={() => setIsLoginModalOpen(false)}
-        onSelectRole={switchUserRole}
+      {/* Reset & Restore Confirmation Warning Modal */}
+      <ResetConfirmationModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={resetToDefault}
       />
 
       {/* Signature Modal */}
