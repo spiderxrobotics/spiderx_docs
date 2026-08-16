@@ -40,7 +40,6 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           Built-In Document Presets
         </h4>
-
         <div className="space-y-2">
           {PRESET_TEMPLATES.map((preset, idx) => (
             <div
