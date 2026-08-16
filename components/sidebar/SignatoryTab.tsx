@@ -71,7 +71,7 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
       {/* Mode Switcher: 1 Director vs 2 Directors */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          ✍️ Signatories Count & Arrangement
+          Signatories Count & Arrangement
         </h4>
 
         <div className="grid grid-cols-2 gap-2">
@@ -110,6 +110,17 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
           />
         </div>
 
+        <div>
+          <label className="text-muted-foreground mb-1 block text-xs">Company Name (Above Signatures)</label>
+          <Input
+            type="text"
+            value={document.signatory.companyName ?? ''}
+            onChange={(e) => updateSignatory({ companyName: e.target.value, headerCompanyName: e.target.value })}
+            placeholder="SPIDERX ROBOTICS PRIVATE LIMITED"
+            className="bg-background border-input rounded-md text-xs font-semibold"
+          />
+        </div>
+
         {document.signatory.mode === 'dual' && (
           <div className="pt-2 space-y-2 border-t border-border">
             <label className="text-[11px] text-muted-foreground block font-semibold">Dual Layout Arrangement</label>
@@ -144,7 +155,7 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
       {/* DIRECTOR 1 SECTION */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider">
-          👔 Director 1 Credentials {document.signatory.mode === 'dual' && '(Primary)'}
+          Director 1 Credentials {document.signatory.mode === 'dual' && '(Primary)'}
         </h4>
 
         <div className="space-y-3 text-xs">
@@ -177,17 +188,6 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
               value={document.signatory.din || ''}
               onChange={(e) => updateSignatory({ din: e.target.value })}
               placeholder="DIN: 11816122"
-              className="bg-background border-input rounded-md"
-            />
-          </div>
-
-          <div>
-            <label className="text-muted-foreground mb-1 block">Company Name</label>
-            <Input
-              type="text"
-              value={document.signatory.companyName}
-              onChange={(e) => updateSignatory({ companyName: e.target.value })}
-              placeholder="SPIDERX ROBOTICS PRIVATE LIMITED"
               className="bg-background border-input rounded-md"
             />
           </div>
@@ -279,7 +279,7 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
       {document.signatory.mode === 'dual' && (
         <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs animate-in fade-in duration-200">
           <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider">
-            👔 Director 2 Credentials (Secondary)
+            Director 2 Credentials (Secondary)
           </h4>
 
           <div className="space-y-3 text-xs">
@@ -312,17 +312,6 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
                 value={document.signatory.director2Din || ''}
                 onChange={(e) => updateSignatory({ director2Din: e.target.value })}
                 placeholder="DIN: 11816121"
-                className="bg-background border-input rounded-md"
-              />
-            </div>
-
-            <div>
-              <label className="text-muted-foreground mb-1 block">Company Name</label>
-              <Input
-                type="text"
-                value={document.signatory.director2CompanyName || ''}
-                onChange={(e) => updateSignatory({ director2CompanyName: e.target.value })}
-                placeholder="SPIDERX ROBOTICS PRIVATE LIMITED"
                 className="bg-background border-input rounded-md"
               />
             </div>
@@ -393,7 +382,7 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            🏵️ Company Official Seal / Stamp
+            Company Official Seal / Stamp
           </h4>
           <label className="flex items-center gap-1.5 cursor-pointer text-xs">
             <input

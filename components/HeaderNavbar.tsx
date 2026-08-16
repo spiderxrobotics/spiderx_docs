@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles } from 'lucide-react';
+import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { exportLetterheadToPdf } from '@/utils/pdfExporter';
@@ -15,6 +15,7 @@ interface HeaderNavbarProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  onRestore?: () => void;
   onToggleTheme: () => void;
   onImportJson: (data: DocumentData) => void;
   onPrint: () => void;
@@ -28,6 +29,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   canRedo = false,
   onUndo,
   onRedo,
+  onRestore,
   onToggleTheme,
   onImportJson,
   onPrint,
@@ -200,6 +202,20 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             />
           </label>
         </Button>
+
+        {/* Restore App Defaults */}
+        {onRestore && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRestore}
+            className="gap-1.5 text-xs font-semibold rounded-md border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500 hidden sm:flex cursor-pointer"
+            title="Restore app and document back to default state"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Restore App</span>
+          </Button>
+        )}
 
         {/* Direct PDF File Download */}
         <Button

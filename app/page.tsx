@@ -6,6 +6,7 @@ import { HeaderNavbar } from '@/components/HeaderNavbar';
 import { ControlsSidebar } from '@/components/ControlsSidebar';
 import { LetterheadCanvas } from '@/components/LetterheadCanvas';
 import { SignaturePadModal } from '@/components/SignaturePadModal';
+import { ResetConfirmationModal } from '@/components/ResetConfirmationModal';
 import { useDocumentStorage } from '@/hooks/useDocumentStorage';
 
 export default function Home() {
@@ -24,6 +25,9 @@ export default function Home() {
   const [zoomScale, setZoomScale] = useState<number>(0.9);
   const [sidebarWidth, setSidebarWidth] = useState<number>(380);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+
+  // Reset Confirmation Modal state
+  const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
 
   // Signature Modal state
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
@@ -124,6 +128,7 @@ export default function Home() {
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
+        onRestore={() => setIsResetModalOpen(true)}
         onToggleTheme={handleToggleTheme}
         onImportJson={updateDocument}
         onPrint={handlePrint}
@@ -138,7 +143,7 @@ export default function Home() {
           onOpenSignatureModal={handleOpenSignatureModal}
           zoomScale={zoomScale}
           onZoomChange={setZoomScale}
-          onResetDefault={resetToDefault}
+          onResetDefault={() => setIsResetModalOpen(true)}
           width={sidebarWidth}
           onWidthChange={handleSidebarWidthChange}
           isCollapsed={isSidebarCollapsed}
@@ -155,6 +160,13 @@ export default function Home() {
           />
         </section>
       </div>
+
+      {/* Reset & Restore Confirmation Warning Modal */}
+      <ResetConfirmationModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={resetToDefault}
+      />
 
       {/* Signature Modal */}
       <SignaturePadModal

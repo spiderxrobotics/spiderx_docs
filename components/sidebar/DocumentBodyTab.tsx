@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { DocumentData } from '@/types/letterhead';
-import { Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { DocumentData, DocumentPage } from '@/types/letterhead';
+import { Plus, Trash2, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
 
@@ -58,11 +58,92 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
   document,
   onChange,
 }) => {
+  const [selectedContentPageNum, setSelectedContentPageNum] = useState<number>(1);
+
   const updateBody = (updates: Partial<DocumentData['body']>) => {
     onChange({
       ...document,
       body: { ...document.body, ...updates },
     });
+  };
+
+  // Multi-page page management calculation
+  const isMultiPage = document.body.multiPage?.enableMultiPage || false;
+  const additionalPages = isMultiPage ? (document.body.multiPage?.pages || []) : [];
+  const allPageNums = [1, ...additionalPages.map((_, i) => i + 2)];
+
+  // Determine currently active editing page target
+  const currentContentPage = allPageNums.includes(selectedContentPageNum) ? selectedContentPageNum : 1;
+  const isEditingPage1 = currentContentPage === 1;
+  const targetPageIdx = currentContentPage - 2;
+  const targetPageObj = !isEditingPage1 ? additionalPages[targetPageIdx] : null;
+
+  const activeParagraphs: string[] = isEditingPage1
+    ? document.body.paragraphs
+    : targetPageObj?.paragraphs || [];
+
+  // Update active paragraphs for current selected page (Page 1 vs Page 2 vs Page 3...)
+  const updateActiveParagraphs = (newParagraphs: string[]) => {
+    if (isEditingPage1) {
+      updateBody({ paragraphs: newParagraphs });
+    } else if (targetPageIdx >= 0) {
+      const updatedPages = [...additionalPages];
+      if (!updatedPages[targetPageIdx]) {
+        updatedPages[targetPageIdx] = {
+          id: `page-${currentContentPage}-${Date.now()}`,
+          pageNumber: currentContentPage,
+          paragraphs: newParagraphs,
+        };
+      } else {
+        updatedPages[targetPageIdx] = {
+          ...updatedPages[targetPageIdx],
+          paragraphs: newParagraphs,
+        };
+      }
+      updateBody({
+        multiPage: {
+          ...(document.body.multiPage || {}),
+          pages: updatedPages,
+        },
+      });
+    }
+  };
+
+  // Add new page
+  const handleAddNewPage = () => {
+    const nextPgNum = additionalPages.length + 2;
+    const newPgObj: DocumentPage = {
+      id: `page-${nextPgNum}-${Date.now()}`,
+      pageNumber: nextPgNum,
+      paragraphs: [`Section heading or paragraph content for Page ${nextPgNum}...`],
+    };
+    const updatedPages = [...additionalPages, newPgObj];
+    updateBody({
+      multiPage: {
+        ...(document.body.multiPage || {}),
+        enableMultiPage: true,
+        pages: updatedPages,
+      },
+    });
+    setSelectedContentPageNum(nextPgNum);
+  };
+
+  // Delete additional page
+  const handleDeletePage = (pNumToDelete: number) => {
+    const idxToDelete = pNumToDelete - 2;
+    if (idxToDelete < 0) return;
+    const filtered = additionalPages.filter((_, i) => i !== idxToDelete);
+    const renumbered = filtered.map((pg, i) => ({
+      ...pg,
+      pageNumber: i + 2,
+    }));
+    updateBody({
+      multiPage: {
+        ...(document.body.multiPage || {}),
+        pages: renumbered,
+      },
+    });
+    setSelectedContentPageNum(1);
   };
 
   const applySelectionFormatting = (
@@ -110,7 +191,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider flex items-center gap-1.5">
-            📄 Multi-Page Document Setup
+            Multi-Page Document Setup
           </h4>
           <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-foreground">
             <input
@@ -170,7 +251,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       {/* Document Headings & Corporate Preamble */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          🏛️ Document Headings & Corporate Info
+          Document Headings & Corporate Info
         </h4>
 
         <div className="space-y-3 text-xs">
@@ -306,7 +387,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            📝 Subject Heading & Style
+            Subject Heading & Style
           </h4>
           <label className="flex items-center gap-1.5 cursor-pointer text-xs">
             <input
@@ -427,375 +508,429 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
         )}
       </div>
 
-      {/* Paragraphs, Headings & List Content Blocks Editor */}
+      {/* Page-Based Main Body Content Blocks Editor */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            📄 Main Body Content Blocks
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <FileText className="w-4 h-4 text-[#7f469b] dark:text-[#a862c8]" /> Page-Based Content Blocks
           </h4>
+          <span className="text-[10px] font-bold text-[#7f469b] dark:text-[#a862c8] bg-[#7f469b]/10 px-2 py-0.5 rounded-full border border-[#7f469b]/20">
+            Editing Page {currentContentPage} ({activeParagraphs.length} Blocks)
+          </span>
         </div>
 
-        <div className="space-y-4">
-          {document.body.paragraphs.map((para, idx) => {
-            const isHeadingBlock = para.startsWith('<h') || para.startsWith('#');
-            const isListBlock = para.includes('<ol') || para.includes('<ul');
-            const isTableBlock = para.includes('<table');
-
-            // Extract list style and list items if this is a List Block
-            let listStyle: 'decimal' | 'disc' = para.includes('<ul') || para.includes('disc') ? 'disc' : 'decimal';
-            let listItems: string[] = [];
-            if (isListBlock) {
-              const matches = para.match(/<li[^>]*>(.*?)<\/li>/gi);
-              if (matches && matches.length > 0) {
-                listItems = matches.map((m) => m.replace(/<\/?li[^>]*>/gi, ''));
-              } else {
-                listItems = [''];
-              }
-            }
-
-            const updateListBlock = (newStyle: 'decimal' | 'disc', newItems: string[]) => {
-              const tag = newStyle === 'decimal' ? 'ol' : 'ul';
-              const newHtml = `<${tag} class="${newStyle}">${newItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`;
-              const updated = [...document.body.paragraphs];
-              updated[idx] = newHtml;
-              updateBody({ paragraphs: updated });
-            };
-
-            // Table block parsing & updating
-            const { headers: tableHeaders, rows: tableRows } = isTableBlock
-              ? parseTableHtml(para)
-              : { headers: ['Header 1', 'Header 2'], rows: [['', '']] };
-
-            const updateTableBlock = (newHeaders: string[], newRows: string[][]) => {
-              const newHtml = buildTableHtml(newHeaders, newRows);
-              const updated = [...document.body.paragraphs];
-              updated[idx] = newHtml;
-              updateBody({ paragraphs: updated });
-            };
-
-            return (
-              <div key={idx} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span className="font-semibold text-foreground flex items-center gap-1.5">
-                    {isTableBlock ? '📊 Table Block' : isListBlock ? '🔢 List Block' : isHeadingBlock ? '📌 Heading Block' : '📄 Paragraph Block'} {idx + 1}
+        {/* Dynamic Page Switcher Tabs */}
+        <div className="flex items-center justify-between gap-2 p-1.5 bg-muted/60 border border-border rounded-lg">
+          <div className="flex flex-wrap items-center gap-1.5 flex-1">
+            {allPageNums.map((pNum) => (
+              <button
+                key={pNum}
+                type="button"
+                onClick={() => setSelectedContentPageNum(pNum)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  currentContentPage === pNum
+                    ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                    : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent border border-border/40'
+                }`}
+              >
+                <span>Page {pNum}</span>
+                {pNum > 1 && currentContentPage === pNum && (
+                  <span
+                    title={`Delete Page ${pNum}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePage(pNum);
+                    }}
+                    className="hover:text-red-300 p-0.5 rounded transition"
+                  >
+                    <Trash2 className="w-3 h-3" />
                   </span>
-                  {document.body.paragraphs.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateBody({
-                          paragraphs: document.body.paragraphs.filter((_, i) => i !== idx),
-                        })
-                      }
-                      className="text-destructive hover:underline text-xs font-semibold"
-                    >
-                      Delete Block
-                    </button>
-                  )}
-                </div>
+                )}
+              </button>
+            ))}
+          </div>
 
-                {/* Custom Table Block Editor */}
-                {isTableBlock ? (
-                  <div className="space-y-3 text-xs pt-1">
-                    <div className="flex items-center justify-between text-[11px] border-b border-border pb-1.5">
-                      <span className="font-semibold text-foreground">Table Columns ({tableHeaders.length})</span>
+          <button
+            type="button"
+            onClick={handleAddNewPage}
+            className="px-2.5 py-1.5 bg-[#7f469b]/10 hover:bg-[#7f469b]/20 text-[#7f469b] dark:text-[#a862c8] border border-[#7f469b]/30 rounded-md text-xs font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
+            title="Add New Document Page"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Page</span>
+          </button>
+        </div>
+
+        {/* Blocks Editor for Selected Page */}
+        <div className="space-y-4 pt-1">
+          {activeParagraphs.length === 0 ? (
+            <div className="p-6 text-center border-2 border-dashed border-border rounded-lg space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">
+                No content blocks on Page {currentContentPage} yet.
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Click any of the buttons below to add a Paragraph, Heading, List, or Table to Page {currentContentPage}.
+              </p>
+            </div>
+          ) : (
+            activeParagraphs.map((para, idx) => {
+              const isHeadingBlock = para.startsWith('<h') || para.startsWith('#');
+              const isListBlock = para.includes('<ol') || para.includes('<ul');
+              const isTableBlock = para.includes('<table');
+
+              // Extract list style and list items if this is a List Block
+              let listStyle: 'decimal' | 'disc' = para.includes('<ul') || para.includes('disc') ? 'disc' : 'decimal';
+              let listItems: string[] = [];
+              if (isListBlock) {
+                const matches = para.match(/<li[^>]*>(.*?)<\/li>/gi);
+                if (matches && matches.length > 0) {
+                  listItems = matches.map((m) => m.replace(/<\/?li[^>]*>/gi, ''));
+                } else {
+                  listItems = [''];
+                }
+              }
+
+              const updateListBlock = (newStyle: 'decimal' | 'disc', newItems: string[]) => {
+                const tag = newStyle === 'decimal' ? 'ol' : 'ul';
+                const newHtml = `<${tag} class="${newStyle}">${newItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`;
+                const updated = [...activeParagraphs];
+                updated[idx] = newHtml;
+                updateActiveParagraphs(updated);
+              };
+
+              // Table block parsing & updating
+              const { headers: tableHeaders, rows: tableRows } = isTableBlock
+                ? parseTableHtml(para)
+                : { headers: ['Header 1', 'Header 2'], rows: [['', '']] };
+
+              const updateTableBlock = (newHeaders: string[], newRows: string[][]) => {
+                const newHtml = buildTableHtml(newHeaders, newRows);
+                const updated = [...activeParagraphs];
+                updated[idx] = newHtml;
+                updateActiveParagraphs(updated);
+              };
+
+              return (
+                <div key={idx} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                      {isTableBlock ? 'Table Block' : isListBlock ? 'List Block' : isHeadingBlock ? 'Heading Block' : 'Paragraph Block'} {idx + 1}
+                      <span className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                        Page {currentContentPage}
+                      </span>
+                    </span>
+                    {activeParagraphs.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => {
-                          const newHeaders = [...tableHeaders, `Header ${tableHeaders.length + 1}`];
-                          const newRows = tableRows.map((r) => [...r, '']);
-                          updateTableBlock(newHeaders, newRows);
-                        }}
-                        className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                        onClick={() =>
+                          updateActiveParagraphs(activeParagraphs.filter((_, i) => i !== idx))
+                        }
+                        className="text-destructive hover:underline text-xs font-semibold"
                       >
-                        <Plus className="w-3 h-3" /> Add Column
+                        Delete Block
                       </button>
-                    </div>
+                    )}
+                  </div>
 
-                    {/* Column Headers Inputs */}
-                    <div className="grid grid-cols-2 gap-1.5 bg-muted/40 p-2 rounded-md border border-border/60">
-                      {tableHeaders.map((h, hIdx) => (
-                        <div key={hIdx} className="space-y-0.5">
-                          <label className="text-[10px] text-muted-foreground font-semibold">Col {hIdx + 1}</label>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="text"
-                              value={h}
-                              onChange={(e) => {
-                                const newHeaders = [...tableHeaders];
-                                newHeaders[hIdx] = e.target.value;
-                                updateTableBlock(newHeaders, tableRows);
-                              }}
-                              placeholder="Header title..."
-                              className="h-7 text-xs bg-background font-semibold"
-                            />
-                            {tableHeaders.length > 1 && (
-                              <button
-                                type="button"
-                                title="Delete Column"
-                                onClick={() => {
-                                  const newHeaders = tableHeaders.filter((_, i) => i !== hIdx);
-                                  const newRows = tableRows.map((r) => r.filter((_, i) => i !== hIdx));
-                                  updateTableBlock(newHeaders, newRows);
-                                }}
-                                className="text-destructive p-1 hover:bg-accent rounded-md"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Rows Editor */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground font-medium">Table Rows ({tableRows.length})</span>
+                  {/* Custom Table Block Editor */}
+                  {isTableBlock ? (
+                    <div className="space-y-3 text-xs pt-1">
+                      <div className="flex items-center justify-between text-[11px] border-b border-border pb-1.5">
+                        <span className="font-semibold text-foreground">Table Columns ({tableHeaders.length})</span>
                         <button
                           type="button"
                           onClick={() => {
-                            const emptyRow = new Array(tableHeaders.length).fill('');
-                            updateTableBlock(tableHeaders, [...tableRows, emptyRow]);
+                            const newHeaders = [...tableHeaders, `Header ${tableHeaders.length + 1}`];
+                            const newRows = tableRows.map((r) => [...r, '']);
+                            updateTableBlock(newHeaders, newRows);
                           }}
                           className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
                         >
-                          <Plus className="w-3 h-3" /> Add Row
+                          <Plus className="w-3 h-3" /> Add Column
                         </button>
                       </div>
 
-                      {tableRows.map((r, rIdx) => (
-                        <div key={rIdx} className="bg-background border border-input p-2 rounded-md space-y-1.5">
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                            <span className="font-semibold">Row {rIdx + 1}</span>
-                            {tableRows.length > 1 && (
+                      {/* Column Headers Inputs */}
+                      <div className="grid grid-cols-2 gap-1.5 bg-muted/40 p-2 rounded-md border border-border/60">
+                        {tableHeaders.map((h, hIdx) => (
+                          <div key={hIdx} className="space-y-0.5">
+                            <label className="text-[10px] text-muted-foreground font-semibold">Col {hIdx + 1}</label>
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={h}
+                                onChange={(e) => {
+                                  const newHeaders = [...tableHeaders];
+                                  newHeaders[hIdx] = e.target.value;
+                                  updateTableBlock(newHeaders, tableRows);
+                                }}
+                                placeholder="Header title..."
+                                className="h-7 text-xs bg-background font-semibold"
+                              />
+                              {tableHeaders.length > 1 && (
+                                <button
+                                  type="button"
+                                  title="Delete Column"
+                                  onClick={() => {
+                                    const newHeaders = tableHeaders.filter((_, i) => i !== hIdx);
+                                    const newRows = tableRows.map((r) => r.filter((_, i) => i !== hIdx));
+                                    updateTableBlock(newHeaders, newRows);
+                                  }}
+                                  className="text-destructive p-1 hover:bg-accent rounded-md"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Rows Editor */}
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground font-medium">Table Rows ({tableRows.length})</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const emptyRow = new Array(tableHeaders.length).fill('');
+                              updateTableBlock(tableHeaders, [...tableRows, emptyRow]);
+                            }}
+                            className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <Plus className="w-3 h-3" /> Add Row
+                          </button>
+                        </div>
+
+                        {tableRows.map((r, rIdx) => (
+                          <div key={rIdx} className="bg-background border border-input p-2 rounded-md space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                              <span className="font-semibold">Row {rIdx + 1}</span>
+                              {tableRows.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newRows = tableRows.filter((_, i) => i !== rIdx);
+                                    updateTableBlock(tableHeaders, newRows);
+                                  }}
+                                  className="text-destructive hover:underline font-semibold"
+                                >
+                                  Delete Row
+                                </button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {r.map((cellVal, cIdx) => (
+                                <Input
+                                  key={cIdx}
+                                  type="text"
+                                  value={cellVal}
+                                  onChange={(e) => {
+                                    const newRows = tableRows.map((rowArr, ri) =>
+                                      ri === rIdx
+                                        ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
+                                        : rowArr
+                                    );
+                                    updateTableBlock(tableHeaders, newRows);
+                                  }}
+                                  placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
+                                  className="h-7 text-xs bg-background/80"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : isListBlock ? (
+                    <div className="space-y-2 text-xs pt-1">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => updateListBlock('decimal', listItems)}
+                          className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                            listStyle === 'decimal'
+                              ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                              : 'bg-muted text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Numbered List (1, 2, 3...)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateListBlock('disc', listItems)}
+                          className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                            listStyle === 'disc'
+                              ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                              : 'bg-muted text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Bullet Points (•)
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground font-medium">List Items ({listItems.length})</span>
+                          <button
+                            type="button"
+                            onClick={() => updateListBlock(listStyle, [...listItems, ''])}
+                            className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
+                          >
+                            <Plus className="w-3 h-3" /> Add Item
+                          </button>
+                        </div>
+
+                        {listItems.map((itemText, itemIdx) => (
+                          <div key={itemIdx} className="flex items-center gap-1 bg-background border border-input p-1.5 rounded-md">
+                            <span className="text-[10px] text-muted-foreground font-semibold px-1 min-w-4">
+                              {listStyle === 'decimal' ? `${itemIdx + 1}.` : '•'}
+                            </span>
+                            <Input
+                              id={`list-block-${currentContentPage}-${idx}-item-${itemIdx}`}
+                              type="text"
+                              value={itemText}
+                              onChange={(e) => {
+                                const updatedItems = [...listItems];
+                                updatedItems[itemIdx] = e.target.value;
+                                updateListBlock(listStyle, updatedItems);
+                              }}
+                              placeholder="List item text..."
+                              className="bg-transparent border-none text-xs flex-1 font-sans focus-visible:ring-0 p-1"
+                            />
+                            <button
+                              type="button"
+                              title="Format Highlighted Text as Bold"
+                              onClick={() =>
+                                applySelectionFormatting(
+                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
+                                  '**',
+                                  '**',
+                                  'bold text',
+                                  itemText,
+                                  (newVal) => {
+                                    const updatedItems = [...listItems];
+                                    updatedItems[itemIdx] = newVal;
+                                    updateListBlock(listStyle, updatedItems);
+                                  }
+                                )
+                              }
+                              className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
+                            >
+                              B
+                            </button>
+                            <button
+                              type="button"
+                              title="Format Highlighted Text as Italic"
+                              onClick={() =>
+                                applySelectionFormatting(
+                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
+                                  '*',
+                                  '*',
+                                  'italic text',
+                                  itemText,
+                                  (newVal) => {
+                                    const updatedItems = [...listItems];
+                                    updatedItems[itemIdx] = newVal;
+                                    updateListBlock(listStyle, updatedItems);
+                                  }
+                                )
+                              }
+                              className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
+                            >
+                              I
+                            </button>
+                            <button
+                              type="button"
+                              title="Format Highlighted Text as Underline"
+                              onClick={() =>
+                                applySelectionFormatting(
+                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
+                                  '<u>',
+                                  '</u>',
+                                  'underlined text',
+                                  itemText,
+                                  (newVal) => {
+                                    const updatedItems = [...listItems];
+                                    updatedItems[itemIdx] = newVal;
+                                    updateListBlock(listStyle, updatedItems);
+                                  }
+                                )
+                              }
+                              className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
+                            >
+                              U
+                            </button>
+                            {listItems.length > 1 && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const newRows = tableRows.filter((_, i) => i !== rIdx);
-                                  updateTableBlock(tableHeaders, newRows);
-                                }}
-                                className="text-destructive hover:underline font-semibold"
+                                onClick={() =>
+                                  updateListBlock(
+                                    listStyle,
+                                    listItems.filter((_, i) => i !== itemIdx)
+                                  )
+                                }
+                                className="text-destructive p-1 hover:bg-accent rounded-md"
                               >
-                                Delete Row
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {r.map((cellVal, cIdx) => (
-                              <Input
-                                key={cIdx}
-                                type="text"
-                                value={cellVal}
-                                onChange={(e) => {
-                                  const newRows = tableRows.map((rowArr, ri) =>
-                                    ri === rIdx
-                                      ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
-                                      : rowArr
-                                  );
-                                  updateTableBlock(tableHeaders, newRows);
-                                }}
-                                placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
-                                className="h-7 text-xs bg-background/80"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : isListBlock ? (
-                  <div className="space-y-2 text-xs pt-1">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => updateListBlock('decimal', listItems)}
-                        className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
-                          listStyle === 'decimal'
-                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
-                            : 'bg-muted text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Numbered List (1, 2, 3...)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updateListBlock('disc', listItems)}
-                        className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
-                          listStyle === 'disc'
-                            ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
-                            : 'bg-muted text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        Bullet Points (•)
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-muted-foreground font-medium">List Items ({listItems.length})</span>
-                        <button
-                          type="button"
-                          onClick={() => updateListBlock(listStyle, [...listItems, ''])}
-                          className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
-                        >
-                          <Plus className="w-3 h-3" /> Add Item
-                        </button>
+                        ))}
                       </div>
-
-                      {listItems.map((itemText, itemIdx) => (
-                        <div key={itemIdx} className="flex items-center gap-1 bg-background border border-input p-1.5 rounded-md">
-                          <span className="text-[10px] text-muted-foreground font-semibold px-1 min-w-4">
-                            {listStyle === 'decimal' ? `${itemIdx + 1}.` : '•'}
-                          </span>
-                          <Input
-                            id={`list-block-${idx}-item-${itemIdx}`}
-                            type="text"
-                            value={itemText}
-                            onChange={(e) => {
-                              const updatedItems = [...listItems];
-                              updatedItems[itemIdx] = e.target.value;
-                              updateListBlock(listStyle, updatedItems);
-                            }}
-                            placeholder="List item text..."
-                            className="bg-transparent border-none text-xs flex-1 font-sans focus-visible:ring-0 p-1"
-                          />
-                          <button
-                            type="button"
-                            title="Format Highlighted Text as Bold"
-                            onClick={() =>
-                              applySelectionFormatting(
-                                `list-block-${idx}-item-${itemIdx}`,
-                                '**',
-                                '**',
-                                'bold text',
-                                itemText,
-                                (newVal) => {
-                                  const updatedItems = [...listItems];
-                                  updatedItems[itemIdx] = newVal;
-                                  updateListBlock(listStyle, updatedItems);
-                                }
-                              )
-                            }
-                            className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
-                          >
-                            B
-                          </button>
-                          <button
-                            type="button"
-                            title="Format Highlighted Text as Italic"
-                            onClick={() =>
-                              applySelectionFormatting(
-                                `list-block-${idx}-item-${itemIdx}`,
-                                '*',
-                                '*',
-                                'italic text',
-                                itemText,
-                                (newVal) => {
-                                  const updatedItems = [...listItems];
-                                  updatedItems[itemIdx] = newVal;
-                                  updateListBlock(listStyle, updatedItems);
-                                }
-                              )
-                            }
-                            className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
-                          >
-                            I
-                          </button>
-                          <button
-                            type="button"
-                            title="Format Highlighted Text as Underline"
-                            onClick={() =>
-                              applySelectionFormatting(
-                                `list-block-${idx}-item-${itemIdx}`,
-                                '<u>',
-                                '</u>',
-                                'underlined text',
-                                itemText,
-                                (newVal) => {
-                                  const updatedItems = [...listItems];
-                                  updatedItems[itemIdx] = newVal;
-                                  updateListBlock(listStyle, updatedItems);
-                                }
-                              )
-                            }
-                            className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
-                          >
-                            U
-                          </button>
-                          {listItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateListBlock(
-                                  listStyle,
-                                  listItems.filter((_, i) => i !== itemIdx)
-                                )
-                              }
-                              className="text-destructive p-1 hover:bg-accent rounded-md"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                ) : (
-                  /* Quill Rich Text Editor for Paragraph / Heading */
-                  <RichTextEditor
-                    value={para}
-                    onChange={(newHtml) => {
-                      const updated = [...document.body.paragraphs];
-                      updated[idx] = newHtml;
-                      updateBody({ paragraphs: updated });
-                    }}
-                    placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
-                  />
-                )}
-              </div>
-            );
-          })}
+                  ) : (
+                    /* Quill Rich Text Editor for Paragraph / Heading */
+                    <RichTextEditor
+                      value={para}
+                      onChange={(newHtml) => {
+                        const updated = [...activeParagraphs];
+                        updated[idx] = newHtml;
+                        updateActiveParagraphs(updated);
+                      }}
+                      placeholder={isHeadingBlock ? "Type section heading title..." : "Type paragraph content..."}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
 
-        {/* Bottom Add Block Actions */}
+        {/* Bottom Add Block Actions for Active Selected Page */}
         <div className="pt-2 grid grid-cols-4 gap-1.5 border-t border-border/50">
           <button
             type="button"
-            onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, ''] })}
-            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+            onClick={() => updateActiveParagraphs([...activeParagraphs, ''])}
+            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Paragraph
           </button>
           <button
             type="button"
-            onClick={() => updateBody({ paragraphs: [...document.body.paragraphs, '# Section Heading Title'] })}
-            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+            onClick={() => updateActiveParagraphs([...activeParagraphs, '# Section Heading Title'])}
+            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Heading
           </button>
           <button
             type="button"
             onClick={() =>
-              updateBody({
-                paragraphs: [...document.body.paragraphs, '<ol class="decimal"><li>First numbered item</li></ol>'],
-              })
+              updateActiveParagraphs([...activeParagraphs, '<ol class="decimal"><li>First numbered item</li></ol>'])
             }
-            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition cursor-pointer"
           >
             <Plus className="w-3 h-3" /> List
           </button>
           <button
             type="button"
             onClick={() =>
-              updateBody({
-                paragraphs: [
-                  ...document.body.paragraphs,
-                  buildTableHtml(['Item / Description', 'Details'], [['Phase 1 Delivery', 'Completed']]),
-                ],
-              })
+              updateActiveParagraphs([
+                ...activeParagraphs,
+                buildTableHtml(['Item / Description', 'Details'], [['Phase 1 Delivery', 'Completed']]),
+              ])
             }
-            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition"
+            className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition cursor-pointer"
           >
             <Plus className="w-3 h-3" /> Table
           </button>
@@ -805,7 +940,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       {/* Closing Salutation & Footer Date/Place Metadata */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          🤝 Closing Salutation & Bottom Footer Meta
+          Closing Salutation & Bottom Footer Meta
         </h4>
 
         <div className="space-y-3 text-xs">

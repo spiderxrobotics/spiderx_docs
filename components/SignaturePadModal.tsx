@@ -188,7 +188,7 @@ export const SignaturePadModal: React.FC<SignaturePadModalProps> = ({
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-card">
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              🖋️ Draw Director {targetDirector} Signature
+              Draw Director {targetDirector} Signature
             </h3>
             <p className="text-[11px] text-muted-foreground">
               Sign with mouse or touch screen. Signature is exported with transparent background.

@@ -163,13 +163,11 @@ export function useDocumentStorage() {
 
   // Reset to default
   const resetToDefault = useCallback(() => {
-    if (confirm('Are you sure you want to reset all document fields to SpiderX defaults?')) {
-      setDocumentState(DEFAULT_DOCUMENT);
-      setHistoryStack([]);
-      setRedoStack([]);
-      localStorage.removeItem('spiderx_letterhead_doc');
-      setSaveStatus('saved');
-    }
+    setDocumentState(DEFAULT_DOCUMENT);
+    setHistoryStack([]);
+    setRedoStack([]);
+    localStorage.removeItem('spiderx_letterhead_doc');
+    setSaveStatus('saved');
   }, []);
 
   return {

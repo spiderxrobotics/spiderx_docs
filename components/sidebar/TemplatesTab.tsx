@@ -38,7 +38,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
       {/* Standard Presets */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          📚 Built-In Document Presets
+          Built-In Document Presets
         </h4>
 
         <div className="space-y-2">
@@ -82,7 +82,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
       {/* Custom Saved Templates */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-          💾 Save Current Layout as Preset
+          Save Current Layout as Preset
         </h4>
 
         <div className="flex gap-2">
