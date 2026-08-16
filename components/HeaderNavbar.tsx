@@ -79,7 +79,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   };
 
   return (
-    <header className="bg-card border-b border-border px-4 md:px-6 py-2.5 flex items-center justify-between no-print select-none shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 z-50 shrink-0 w-full bg-card/95 backdrop-blur-md border-b border-border px-4 md:px-6 py-2.5 flex items-center justify-between no-print select-none shadow-xs transition-colors duration-200">
       {/* Brand & Title */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] p-0.5 flex items-center justify-center shadow-xs">

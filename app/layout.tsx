@@ -19,13 +19,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full w-full antialiased overflow-hidden">
       <head>
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">{children}</body>
+      <body className="h-full w-full flex flex-col bg-background text-foreground transition-colors duration-200 overflow-hidden">{children}</body>
     </html>
   );
 }

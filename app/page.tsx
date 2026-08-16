@@ -118,7 +118,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-200">
+    <main className="h-screen w-screen flex flex-col bg-background text-foreground transition-colors duration-200 overflow-hidden">
       {/* Top Header Navbar */}
       <HeaderNavbar
         document={document}
@@ -135,7 +135,7 @@ export default function Home() {
       />
 
       {/* Main Studio Workbench (Fixed Sidebar + Scrollable Canvas) */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative h-[calc(100vh-57px)]">
+      <div className="flex-1 w-full flex flex-col lg:flex-row overflow-hidden relative min-h-0">
         {/* Fixed Controls Sidebar */}
         <ControlsSidebar
           document={document}
@@ -151,7 +151,7 @@ export default function Home() {
         />
 
         {/* Scrollable Center Workbench Canvas Area with ReactFlow Dot Grid */}
-        <section className="flex-1 h-full bg-canvas-grid border-l border-border overflow-y-auto overflow-x-auto flex items-start justify-center p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-border">
+        <section className="flex-1 h-full min-h-0 min-w-0 bg-canvas-grid border-l border-border overflow-y-auto overflow-x-auto flex items-start justify-center p-4 sm:p-6 lg:p-8 scrollbar-thin scrollbar-thumb-border">
           <LetterheadCanvas
             document={document}
             zoomScale={zoomScale}

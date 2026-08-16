@@ -68,8 +68,9 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
   };
 
   // Multi-page page management calculation
-  const isMultiPage = document.body.multiPage?.enableMultiPage || false;
-  const additionalPages = isMultiPage ? (document.body.multiPage?.pages || []) : [];
+  const rawPages = document.body.multiPage?.pages || [];
+  const additionalPages = rawPages;
+  const isMultiPage = (document.body.multiPage?.enableMultiPage ?? false) || additionalPages.length > 0;
   const allPageNums = [1, ...additionalPages.map((_, i) => i + 2)];
 
   // Determine currently active editing page target
@@ -103,6 +104,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       updateBody({
         multiPage: {
           ...(document.body.multiPage || {}),
+          enableMultiPage: true,
           pages: updatedPages,
         },
       });
@@ -315,67 +317,12 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
               </label>
             </div>
             {document.body.showSubHeading && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    title="Format Highlighted Text as Bold"
-                    onClick={() =>
-                      applySelectionFormatting(
-                        'subheading-preamble-input',
-                        '**',
-                        '**',
-                        'bold text',
-                        document.body.subHeading || '',
-                        (newVal) => updateBody({ subHeading: newVal })
-                      )
-                    }
-                    className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
-                  >
-                    B
-                  </button>
-                  <button
-                    type="button"
-                    title="Format Highlighted Text as Italic"
-                    onClick={() =>
-                      applySelectionFormatting(
-                        'subheading-preamble-input',
-                        '*',
-                        '*',
-                        'italic text',
-                        document.body.subHeading || '',
-                        (newVal) => updateBody({ subHeading: newVal })
-                      )
-                    }
-                    className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
-                  >
-                    I
-                  </button>
-                  <button
-                    type="button"
-                    title="Format Highlighted Text as Underline"
-                    onClick={() =>
-                      applySelectionFormatting(
-                        'subheading-preamble-input',
-                        '<u>',
-                        '</u>',
-                        'underlined text',
-                        document.body.subHeading || '',
-                        (newVal) => updateBody({ subHeading: newVal })
-                      )
-                    }
-                    className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
-                  >
-                    U
-                  </button>
-                </div>
-                <textarea
-                  id="subheading-preamble-input"
+              <div className="pt-1">
+                <RichTextEditor
                   value={document.body.subHeading || ''}
-                  onChange={(e) => updateBody({ subHeading: e.target.value })}
+                  onChange={(newHtml) => updateBody({ subHeading: newHtml })}
                   placeholder="e.g. CERTIFIED TRUE COPY OF THE RESOLUTION PASSED AT THE MEETING..."
-                  rows={3}
-                  className="w-full bg-background border border-input rounded-md p-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] resize-y"
+                  minHeight="80px"
                 />
               </div>
             )}
@@ -441,67 +388,12 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center justify-end gap-1">
-                <button
-                  type="button"
-                  title="Format Highlighted Text as Bold"
-                  onClick={() =>
-                    applySelectionFormatting(
-                      'subject-heading-input',
-                      '**',
-                      '**',
-                      'bold text',
-                      document.body.subject,
-                      (newVal) => updateBody({ subject: newVal })
-                    )
-                  }
-                  className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
-                >
-                  B
-                </button>
-                <button
-                  type="button"
-                  title="Format Highlighted Text as Italic"
-                  onClick={() =>
-                    applySelectionFormatting(
-                      'subject-heading-input',
-                      '*',
-                      '*',
-                      'italic text',
-                      document.body.subject,
-                      (newVal) => updateBody({ subject: newVal })
-                    )
-                  }
-                  className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
-                >
-                  I
-                </button>
-                <button
-                  type="button"
-                  title="Format Highlighted Text as Underline"
-                  onClick={() =>
-                    applySelectionFormatting(
-                      'subject-heading-input',
-                      '<u>',
-                      '</u>',
-                      'underlined text',
-                      document.body.subject,
-                      (newVal) => updateBody({ subject: newVal })
-                    )
-                  }
-                  className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
-                >
-                  U
-                </button>
-              </div>
-              <textarea
-                id="subject-heading-input"
-                value={document.body.subject}
-                onChange={(e) => updateBody({ subject: e.target.value })}
+            <div className="pt-1">
+              <RichTextEditor
+                value={document.body.subject || ''}
+                onChange={(newHtml) => updateBody({ subject: newHtml })}
                 placeholder="Subject line text or resolution title..."
-                rows={2}
-                className="w-full bg-background border border-input rounded-md p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[#7f469b] focus:border-[#7f469b] resize-none"
+                minHeight="80px"
               />
             </div>
           </div>
@@ -523,30 +415,32 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
         <div className="flex items-center justify-between gap-2 p-1.5 bg-muted/60 border border-border rounded-lg">
           <div className="flex flex-wrap items-center gap-1.5 flex-1">
             {allPageNums.map((pNum) => (
-              <button
-                key={pNum}
-                type="button"
-                onClick={() => setSelectedContentPageNum(pNum)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  currentContentPage === pNum
-                    ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
-                    : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent border border-border/40'
-                }`}
-              >
-                <span>Page {pNum}</span>
+              <div key={pNum} className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedContentPageNum(pNum)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                    currentContentPage === pNum
+                      ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                      : 'bg-background text-muted-foreground hover:text-foreground hover:bg-accent border border-border/40'
+                  }`}
+                >
+                  <span>Page {pNum}</span>
+                </button>
                 {pNum > 1 && currentContentPage === pNum && (
-                  <span
+                  <button
+                    type="button"
                     title={`Delete Page ${pNum}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeletePage(pNum);
                     }}
-                    className="hover:text-red-300 p-0.5 rounded transition"
+                    className="p-1.5 rounded-md bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground border border-destructive/20 text-xs transition cursor-pointer flex items-center justify-center"
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </span>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
 
@@ -611,7 +505,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
               };
 
               return (
-                <div key={idx} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
+                <div key={`page-${currentContentPage}-block-${idx}`} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
                       {isTableBlock ? 'Table Block' : isListBlock ? 'List Block' : isHeadingBlock ? 'Heading Block' : 'Paragraph Block'} {idx + 1}
