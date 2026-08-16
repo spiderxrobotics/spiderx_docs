@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { PRESET_TEMPLATES, DEFAULT_SPIDERX_LETTERHEAD_BG } from '@/utils/defaultTemplates';
+import { PRESET_TEMPLATES } from '@/utils/defaultTemplates';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,7 +66,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
                     layout: {
                       ...document.layout,
                       ...(preset.template.layout || {}),
-                      letterheadImage: document.layout.letterheadImage || DEFAULT_SPIDERX_LETTERHEAD_BG,
+                      letterheadImage: preset.template.layout?.letterheadImage ?? document.layout.letterheadImage ?? null,
                     },
                   })
                 }
