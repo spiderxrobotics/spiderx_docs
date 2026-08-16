@@ -73,7 +73,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         quill.on('text-change', () => {
           if (isUpdatingRef.current) return;
           const html = containerRef.current?.querySelector('.ql-editor')?.innerHTML || '';
+          isUpdatingRef.current = true;
           onChange(html);
+          setTimeout(() => {
+            isUpdatingRef.current = false;
+          }, 0);
         });
       } catch (err) {
         console.error('Failed to initialize Quill editor:', err);
@@ -98,20 +102,27 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   // Sync external value changes when modified outside Quill
   useEffect(() => {
     if (!quillRef.current) return;
+    if (isUpdatingRef.current) return;
+
     const currentHtml = containerRef.current?.querySelector('.ql-editor')?.innerHTML || '';
 
-    if (value !== currentHtml && !isUpdatingRef.current) {
+    const normValue = (value || '').trim();
+    const normCurrent = (currentHtml || '').trim();
+
+    if (normValue !== normCurrent) {
       isUpdatingRef.current = true;
       const range = quillRef.current.getSelection();
-      if (value.startsWith('<') || value.includes('</')) {
-        quillRef.current.clipboard.dangerouslyPasteHTML(value);
+      if (normValue.startsWith('<') || normValue.includes('</')) {
+        quillRef.current.clipboard.dangerouslyPasteHTML(normValue);
       } else {
-        quillRef.current.clipboard.dangerouslyPasteHTML(convertMarkdownToHtml(value));
+        quillRef.current.clipboard.dangerouslyPasteHTML(convertMarkdownToHtml(normValue));
       }
       if (range) {
         quillRef.current.setSelection(range);
       }
-      isUpdatingRef.current = false;
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 0);
     }
   }, [value]);
 

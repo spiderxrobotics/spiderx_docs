@@ -474,9 +474,16 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
               {/* Sub-heading / Resolution Preamble */}
               {body.showSubHeading && body.subHeading && (
                 <div className="text-center my-3 px-1">
-                  <p className="text-xs font-semibold text-slate-800 leading-relaxed uppercase">
-                    {body.subHeading}
-                  </p>
+                  {body.subHeading.startsWith('<') || body.subHeading.includes('</') ? (
+                    <div
+                      className="text-xs font-semibold text-slate-800 leading-relaxed uppercase spiderx-canvas-content"
+                      dangerouslySetInnerHTML={{ __html: body.subHeading }}
+                    />
+                  ) : (
+                    <p className="text-xs font-semibold text-slate-800 leading-relaxed uppercase">
+                      {renderInlineFormatting(body.subHeading)}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -521,22 +528,43 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
               {body.showSubject && body.subject && (
                 body.subjectStyle === 'centered-header' ? (
                   <div className="my-4 text-center">
-                    <h2 className="font-bold text-slate-900 text-sm tracking-tight inline-block pb-0.5 border-b-2 border-slate-900/60">
-                      {body.subject}
-                    </h2>
+                    {body.subject.startsWith('<') || body.subject.includes('</') ? (
+                      <div
+                        className="font-bold text-slate-900 text-sm tracking-tight inline-block pb-0.5 border-b-2 border-slate-900/60 spiderx-canvas-content"
+                        dangerouslySetInnerHTML={{ __html: body.subject }}
+                      />
+                    ) : (
+                      <h2 className="font-bold text-slate-900 text-sm tracking-tight inline-block pb-0.5 border-b-2 border-slate-900/60">
+                        {renderInlineFormatting(body.subject)}
+                      </h2>
+                    )}
                   </div>
                 ) : body.subjectStyle === 'plain' ? (
                   <div className="my-3">
-                    <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wide">
-                      {body.subject}
-                    </h2>
+                    {body.subject.startsWith('<') || body.subject.includes('</') ? (
+                      <div
+                        className="font-bold text-slate-900 text-xs uppercase tracking-wide spiderx-canvas-content"
+                        dangerouslySetInnerHTML={{ __html: body.subject }}
+                      />
+                    ) : (
+                      <h2 className="font-bold text-slate-900 text-xs uppercase tracking-wide">
+                        {renderInlineFormatting(body.subject)}
+                      </h2>
+                    )}
                   </div>
                 ) : (
                   <div className="mb-6 p-3 bg-[#7f469b]/5 border-l-4 rounded-r-md border-[#7f469b]">
-                    <p className="font-bold text-slate-900 tracking-wide uppercase text-xs">
-                      <span className="text-[#7f469b] font-extrabold mr-2">SUBJECT:</span>
-                      {body.subject}
-                    </p>
+                    {body.subject.startsWith('<') || body.subject.includes('</') ? (
+                      <div className="font-bold text-slate-900 tracking-wide uppercase text-xs spiderx-canvas-content flex items-start gap-2">
+                        <span className="text-[#7f469b] font-extrabold shrink-0">SUBJECT:</span>
+                        <div className="flex-1" dangerouslySetInnerHTML={{ __html: body.subject }} />
+                      </div>
+                    ) : (
+                      <p className="font-bold text-slate-900 tracking-wide uppercase text-xs">
+                        <span className="text-[#7f469b] font-extrabold mr-2">SUBJECT:</span>
+                        {renderInlineFormatting(body.subject)}
+                      </p>
+                    )}
                   </div>
                 )
               )}

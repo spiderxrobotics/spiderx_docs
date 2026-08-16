@@ -154,8 +154,7 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
 
         {/* Dynamic Target Page Selector Buttons (Page 1, Page 2, Page 3...) */}
         {(() => {
-          const isMultiPage = document.body.multiPage?.enableMultiPage ?? false;
-          const pagesList = isMultiPage ? (document.body.multiPage?.pages || []) : [];
+          const pagesList = document.body.multiPage?.pages || [];
           const allPageNums = [1, ...pagesList.map((_, i) => i + 2)];
 
           // Current target page values calculation
