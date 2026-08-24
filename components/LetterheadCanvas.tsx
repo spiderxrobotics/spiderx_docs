@@ -267,17 +267,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
             </div>
           </div>
         ) : (
-          /* SINGLE DIRECTOR MODE */
+          /* SINGLE DIRECTOR / COMPANY SIGNATORY (+ Optional Recipient Acceptance) */
           <div
             className={`flex ${
-              signatory.alignment === 'right'
+              signatory.showRecipientAcceptance
+                ? 'flex-row items-end justify-between gap-8'
+                : signatory.alignment === 'right'
                 ? 'justify-end'
                 : signatory.alignment === 'center'
                 ? 'justify-center'
                 : 'justify-start'
             }`}
           >
-            <div className="relative inline-block min-w-[220px]">
+            {/* Company / Director Signature Box */}
+            <div className="relative inline-block min-w-[200px] flex-1 max-w-[280px]">
               {signatory.showSeal && signatory.sealImage && (
                 <div
                   className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
@@ -308,6 +311,32 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Candidate / Student / Employee / Recipient Acceptance Box */}
+            {signatory.showRecipientAcceptance && (
+              <div className="flex-1 text-left min-w-[200px] max-w-[280px]">
+                <h5 className="font-bold text-xs text-slate-900 tracking-wide">
+                  {signatory.recipientAcceptanceTitle || 'Candidate Acceptance'}
+                </h5>
+                <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-snug">
+                  {signatory.recipientAcceptanceText || 'I have read, understood, and accepted the terms of this offer.'}
+                </p>
+                <div className="pt-3 space-y-2 text-xs font-semibold text-slate-800">
+                  {signatory.showAcceptanceSignatureLine !== false && (
+                    <div className="flex items-end gap-1">
+                      <span>Signature:</span>
+                      <span className="flex-1 border-b border-slate-400 h-4"></span>
+                    </div>
+                  )}
+                  {signatory.showAcceptanceDateLine !== false && (
+                    <div className="flex items-end gap-1">
+                      <span>Date:</span>
+                      <span className="flex-1 border-b border-slate-400 h-4"></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

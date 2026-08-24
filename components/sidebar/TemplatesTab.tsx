@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
 import { PRESET_TEMPLATES } from '@/utils/defaultTemplates';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, FileText, Upload, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { parseMarkdownToDocumentBlocks, distributeBlocksAcrossPages } from '@/utils/markdownParser';
 
 interface TemplatesTabProps {
   document: DocumentData;
@@ -20,6 +21,55 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
 }) => {
   const [savedTemplates, setSavedTemplates] = useState<{ id: string; name: string; data: DocumentData }[]>([]);
   const [templateNameInput, setTemplateNameInput] = useState('');
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  // Handle uploading and parsing a .md file
+  const handleMarkdownFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        const { paragraphs: newBlocks, subject, mainHeading } = parseMarkdownToDocumentBlocks(text);
+
+        const updatedBody = { ...document.body };
+        if (newBlocks.length > 0) {
+          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, 5, 7);
+
+          updatedBody.paragraphs = page1Paragraphs;
+
+          if (distributedPages.length > 0) {
+            updatedBody.multiPage = {
+              ...(document.body.multiPage || {}),
+              enableMultiPage: true,
+              pages: distributedPages,
+              continuedNoticeText: document.body.multiPage?.continuedNoticeText || '...Continued on Next Page',
+            };
+          }
+        }
+        if (subject) {
+          updatedBody.showSubject = true;
+          updatedBody.subject = subject;
+        }
+        if (mainHeading) {
+          updatedBody.showMainHeading = true;
+          updatedBody.mainHeading = mainHeading;
+        }
+
+        onChange({
+          ...document,
+          body: updatedBody,
+        });
+
+        setStatusMsg(`Imported "${file.name}" (${newBlocks.length} blocks auto-aligned across ${1 + (updatedBody.multiPage?.pages?.length || 0)} pages)!`);
+        setTimeout(() => setStatusMsg(null), 4500);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Save current template to local storage state
   const handleSaveTemplate = () => {
@@ -35,6 +85,35 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Import Markdown (.md) Document Card */}
+      <div className="bg-[#7f469b]/5 border border-[#7f469b]/25 rounded-lg p-3.5 space-y-2 shadow-xs">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider flex items-center gap-1.5">
+            <FileText className="w-4 h-4" /> Import Markdown (.md) File
+          </h4>
+          <span className="text-[10px] font-bold text-[#7f469b] bg-[#7f469b]/10 px-2 py-0.5 rounded-full border border-[#7f469b]/20">
+            Auto Alignment
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-normal">
+          Load your <code className="text-[#7f469b] font-bold font-mono">.md</code> document. Paragraphs, headings, lists, and tables will be auto-aligned into letterhead blocks.
+        </p>
+        {statusMsg && (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-md border border-emerald-500/20 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{statusMsg}</span>
+          </div>
+        )}
+        <label className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] hover:opacity-95 text-white rounded-md text-xs font-bold cursor-pointer transition shadow-xs">
+          <Upload className="w-3.5 h-3.5" /> Upload & Parse .md File
+          <input
+            type="file"
+            accept=".md,.txt,.markdown"
+            onChange={handleMarkdownFileUpload}
+            className="hidden"
+          />
+        </label>
+      </div>
       {/* Standard Presets */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">

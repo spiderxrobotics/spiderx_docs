@@ -152,6 +152,78 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
         )}
       </div>
 
+      {/* Candidate / Student / Employee Acceptance Block Card */}
+      <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider">
+            Candidate / Recipient Acceptance
+          </h4>
+          <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-foreground">
+            <input
+              type="checkbox"
+              checked={document.signatory.showRecipientAcceptance ?? true}
+              onChange={(e) => updateSignatory({ showRecipientAcceptance: e.target.checked })}
+              className="accent-[#7f469b] w-4 h-4 cursor-pointer"
+            />
+            <span>Enable Acceptance</span>
+          </label>
+        </div>
+
+        {document.signatory.showRecipientAcceptance !== false && (
+          <div className="space-y-3 pt-1 border-t border-border">
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                Title (Candidate / Employee / Student)
+              </label>
+              <Input
+                type="text"
+                value={document.signatory.recipientAcceptanceTitle ?? 'Candidate Acceptance'}
+                onChange={(e) => updateSignatory({ recipientAcceptanceTitle: e.target.value })}
+                placeholder="e.g. Candidate Acceptance / Student Acceptance"
+                className="bg-background border-input rounded-md text-xs font-semibold"
+              />
+            </div>
+
+            <div>
+              <label className="text-muted-foreground mb-1 block text-xs font-semibold">
+                Declaration / Acceptance Statement
+              </label>
+              <Input
+                type="text"
+                value={
+                  document.signatory.recipientAcceptanceText ??
+                  'I have read, understood, and accepted the terms of this offer.'
+                }
+                onChange={(e) => updateSignatory({ recipientAcceptanceText: e.target.value })}
+                placeholder="I have read, understood, and accepted..."
+                className="bg-background border-input rounded-md text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer font-semibold">
+                <input
+                  type="checkbox"
+                  checked={document.signatory.showAcceptanceSignatureLine !== false}
+                  onChange={(e) => updateSignatory({ showAcceptanceSignatureLine: e.target.checked })}
+                  className="accent-[#7f469b] w-3.5 h-3.5"
+                />
+                <span>Signature Line</span>
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer font-semibold">
+                <input
+                  type="checkbox"
+                  checked={document.signatory.showAcceptanceDateLine !== false}
+                  onChange={(e) => updateSignatory({ showAcceptanceDateLine: e.target.checked })}
+                  className="accent-[#7f469b] w-3.5 h-3.5"
+                />
+                <span>Date Line</span>
+              </label>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* DIRECTOR 1 SECTION */}
       <div className="bg-card border border-border rounded-lg p-4 space-y-3 shadow-xs">
         <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider">

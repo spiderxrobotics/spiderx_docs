@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { DocumentData, DocumentPage } from '@/types/letterhead';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, Upload, CheckCircle2, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { parseMarkdownToDocumentBlocks, distributeBlocksAcrossPages } from '@/utils/markdownParser';
 import dynamic from 'next/dynamic';
 
 const parseTableHtml = (html: string) => {
@@ -196,6 +197,109 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
       },
     });
     setSelectedContentPageNum(1);
+  };
+
+  // Import & Parse Markdown (.md) File
+  const [importStatusMsg, setImportStatusMsg] = useState<string | null>(null);
+
+  const handleMarkdownFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        const {
+          paragraphs: newBlocks,
+          subject,
+          mainHeading,
+          docHeaderAddress,
+          refNumber,
+          date,
+          recipient: parsedRec,
+          recipientAcceptance,
+        } = parseMarkdownToDocumentBlocks(text);
+
+        const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks);
+
+        const updatedDoc: DocumentData = {
+          ...document,
+          ...(date ? { date } : {}),
+          ...(refNumber ? { refNumber } : {}),
+          recipient: {
+            ...document.recipient,
+            showRecipient: true,
+            ...(parsedRec?.name ? { name: parsedRec.name } : {}),
+            ...(parsedRec?.addressLine1 ? { addressLine1: parsedRec.addressLine1 } : {}),
+            ...(parsedRec?.cityStateZip ? { cityStateZip: parsedRec.cityStateZip } : {}),
+            ...(parsedRec?.email ? { email: parsedRec.email } : {}),
+          },
+          signatory: {
+            ...document.signatory,
+            ...(recipientAcceptance
+              ? {
+                  showRecipientAcceptance: true,
+                  ...(recipientAcceptance.title ? { recipientAcceptanceTitle: recipientAcceptance.title } : {}),
+                  ...(recipientAcceptance.text ? { recipientAcceptanceText: recipientAcceptance.text } : {}),
+                }
+              : {}),
+          },
+          body: {
+            ...document.body,
+            paragraphs: page1Paragraphs,
+            docHeaderAddress: '',
+            showMainHeading: false,
+            mainHeading: '',
+            ...(subject ? { showSubject: true, subject } : {}),
+            multiPage: {
+              ...(document.body.multiPage || {}),
+              enableMultiPage: distributedPages.length > 0,
+              pages: distributedPages,
+              continuedNoticeText: document.body.multiPage?.continuedNoticeText || '...Continued on Next Page',
+            },
+          },
+        };
+
+        onChange(updatedDoc);
+        setImportStatusMsg(
+          `Loaded "${file.name}" (${newBlocks.length} blocks auto-aligned across ${
+            1 + distributedPages.length
+          } page${distributedPages.length > 0 ? 's' : ''})!`
+        );
+        setTimeout(() => setImportStatusMsg(null), 5000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // Re-balance all document blocks across pages automatically
+  const handleAutoDistributePages = () => {
+    const page1Blocks = document.body.paragraphs || [];
+    const otherBlocks = (document.body.multiPage?.pages || []).flatMap((p) => p.paragraphs || []);
+    const allCombined = [...page1Blocks, ...otherBlocks];
+
+    if (allCombined.length === 0) return;
+
+    const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(allCombined, 5, 7);
+
+    updateBody({
+      paragraphs: page1Paragraphs,
+      multiPage: {
+        ...(document.body.multiPage || {}),
+        enableMultiPage: distributedPages.length > 0,
+        pages: distributedPages,
+        continuedNoticeText: document.body.multiPage?.continuedNoticeText || '...Continued on Next Page',
+      },
+    });
+
+    setImportStatusMsg(
+      `Auto-aligned ${allCombined.length} content blocks cleanly across ${1 + distributedPages.length} page${
+        distributedPages.length > 0 ? 's' : ''
+      }!`
+    );
+    setTimeout(() => setImportStatusMsg(null), 5000);
   };
 
   const applySelectionFormatting = (
@@ -448,6 +552,46 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Load / Import Markdown (.md) Document Card */}
+      <div className="bg-[#7f469b]/5 border border-[#7f469b]/25 rounded-lg p-3.5 space-y-2 shadow-xs">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-bold text-[#7f469b] dark:text-[#a862c8] uppercase tracking-wider flex items-center gap-1.5">
+            <FileText className="w-4 h-4" /> Load Markdown (.md) File
+          </h4>
+          <span className="text-[10px] font-bold text-[#7f469b] bg-[#7f469b]/10 px-2 py-0.5 rounded-full border border-[#7f469b]/20">
+            Auto Align
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-normal">
+          Upload any <code className="text-[#7f469b] font-bold font-mono">.md</code> document. Headings, lists, tables, and paragraphs will be auto-parsed and aligned into document blocks.
+        </p>
+        {importStatusMsg && (
+          <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 p-2 rounded-md border border-emerald-500/20 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{importStatusMsg}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <label className="flex items-center justify-center gap-2 py-2 px-3 bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] hover:opacity-95 text-white rounded-md text-xs font-bold cursor-pointer transition shadow-xs">
+            <Upload className="w-3.5 h-3.5" /> Upload .md File
+            <input
+              type="file"
+              accept=".md,.txt,.markdown"
+              onChange={handleMarkdownFileUpload}
+              className="hidden"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleAutoDistributePages}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-background hover:bg-accent text-[#7f469b] dark:text-[#a862c8] border border-[#7f469b]/40 rounded-md text-xs font-bold transition cursor-pointer"
+            title="Auto-align and distribute blocks across Page 1, Page 2, Page 3 cleanly"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Auto-Split Pages
+          </button>
+        </div>
       </div>
 
       {/* Page-Based Main Body Content Blocks Editor */}
