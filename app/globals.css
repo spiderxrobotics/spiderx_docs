@@ -524,19 +524,39 @@
 
 .spiderx-canvas-content th,
 .spiderx-table th {
-  background-color: rgba(127, 70, 155, 0.08) !important;
-  color: #1e293b !important;
+  background-color: #7f469b !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  padding: 0.4rem 0.6rem !important;
-  border: 1px solid #cbd5e1 !important;
+  padding: 0.45rem 0.65rem !important;
+  border: 1px solid #6b3587 !important;
   text-align: left !important;
+  font-size: 0.75rem !important;
 }
 
 .spiderx-canvas-content td,
 .spiderx-table td {
-  padding: 0.4rem 0.6rem !important;
+  padding: 0.4rem 0.65rem !important;
   border: 1px solid #e2e8f0 !important;
   color: #334155 !important;
+}
+
+.spiderx-canvas-content tfoot,
+.spiderx-table tfoot,
+.spiderx-canvas-content tr.total-row,
+.spiderx-table tr.total-row {
+  background-color: rgba(127, 70, 155, 0.07) !important;
+  font-weight: 700 !important;
+}
+
+.spiderx-canvas-content tfoot td,
+.spiderx-table tfoot td,
+.spiderx-canvas-content tr.total-row td,
+.spiderx-table tr.total-row td {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background-color: rgba(127, 70, 155, 0.07) !important;
 }
 
 /* Custom Button Animations & Transitions */

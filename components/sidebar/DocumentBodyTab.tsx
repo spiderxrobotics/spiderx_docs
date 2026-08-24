@@ -7,34 +7,84 @@ import { Input } from '@/components/ui/input';
 import dynamic from 'next/dynamic';
 
 const parseTableHtml = (html: string) => {
-  // Extract th headers
+  let hasTotalRow = html.includes('<tfoot') || html.includes('total-row');
+
+  if (typeof window !== 'undefined' && window.DOMParser) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const table = doc.querySelector('table');
+      if (table) {
+        if (doc.querySelector('tfoot') || table.querySelector('tr.total-row')) {
+          hasTotalRow = true;
+        }
+
+        const thEls = Array.from(table.querySelectorAll('th'));
+        const headers =
+          thEls.length > 0
+            ? thEls.map((th) => th.innerHTML.trim() || th.textContent?.trim() || '')
+            : ['Header 1', 'Header 2'];
+
+        const trEls = Array.from(table.querySelectorAll('tr')).filter(
+          (tr) => tr.querySelectorAll('td').length > 0
+        );
+
+        const rows: string[][] = trEls.map((tr) => {
+          const tdEls = Array.from(tr.querySelectorAll('td'));
+          return tdEls.map((td) => td.innerHTML.trim() || td.textContent?.trim() || '');
+        });
+
+        if (rows.length > 0) {
+          return { headers, rows, hasTotalRow };
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse table HTML with DOMParser:', e);
+    }
+  }
+
+  // Fallback regex parsing if DOMParser is unavailable
   const thMatches = html.match(/<th[^>]*>([\s\S]*?)<\/th>/gi);
   const headers = thMatches
-    ? thMatches.map((m) => m.replace(/<\/?th[^>]*>/gi, '').replace(/<[^>]+>/g, ''))
+    ? thMatches.map((m) => m.replace(/<\/?th[^>]*>/gi, '').trim())
     : ['Header 1', 'Header 2'];
 
-  // Extract tr rows containing td cells (ignoring header th rows)
-  const tdRowMatches = html.match(/<tr[^>]*>([\s\S]*?<\/td>[\s\S]*?)<\/tr>/gi);
-
+  const trMatches = html.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
   const rows: string[][] = [];
-  if (tdRowMatches && tdRowMatches.length > 0) {
-    tdRowMatches.forEach((tr) => {
-      const tdMatches = tr.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
-      if (tdMatches) {
-        rows.push(tdMatches.map((m) => m.replace(/<\/?td[^>]*>/gi, '').replace(/<[^>]+>/g, '')));
-      }
-    });
-  }
+
+  trMatches.forEach((trHtml) => {
+    const tdMatches = trHtml.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+    if (tdMatches && tdMatches.length > 0) {
+      const rowCells = tdMatches.map((tdHtml) => tdHtml.replace(/<\/?td[^>]*>/gi, '').trim());
+      rows.push(rowCells);
+    }
+  });
 
   if (rows.length === 0) {
     rows.push(new Array(headers.length).fill(''));
   }
 
-  return { headers, rows };
+  return { headers, rows, hasTotalRow };
 };
 
-const buildTableHtml = (headers: string[], rows: string[][]) => {
+const buildTableHtml = (headers: string[], rows: string[][], hasTotalRow: boolean = false) => {
   const headHtml = `<thead><tr>${headers.map((h) => `<th>${h || ''}</th>`).join('')}</tr></thead>`;
+
+  if (hasTotalRow && rows.length > 1) {
+    const bodyRows = rows.slice(0, -1);
+    const totalRow = rows[rows.length - 1];
+
+    const bodyHtml = `<tbody>${bodyRows
+      .map((r) => `<tr>${r.map((c) => `<td>${c || ''}</td>`).join('')}</tr>`)
+      .join('')}</tbody>`;
+
+    const footHtml = `<tfoot><tr class="total-row">${totalRow
+      .map((c) => `<td>${c || ''}</td>`)
+      .join('')}</tr></tfoot>`;
+
+    return `<table class="spiderx-table">${headHtml}${bodyHtml}${footHtml}</table>`;
+  }
+
   const bodyHtml = `<tbody>${rows
     .map((r) => `<tr>${r.map((c) => `<td>${c || ''}</td>`).join('')}</tr>`)
     .join('')}</tbody>`;
@@ -493,12 +543,16 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
               };
 
               // Table block parsing & updating
-              const { headers: tableHeaders, rows: tableRows } = isTableBlock
+              const { headers: tableHeaders, rows: tableRows, hasTotalRow } = isTableBlock
                 ? parseTableHtml(para)
-                : { headers: ['Header 1', 'Header 2'], rows: [['', '']] };
+                : { headers: ['Header 1', 'Header 2'], rows: [['', '']], hasTotalRow: false };
 
-              const updateTableBlock = (newHeaders: string[], newRows: string[][]) => {
-                const newHtml = buildTableHtml(newHeaders, newRows);
+              const updateTableBlock = (
+                newHeaders: string[],
+                newRows: string[][],
+                newHasTotal: boolean = hasTotalRow
+              ) => {
+                const newHtml = buildTableHtml(newHeaders, newRows, newHasTotal);
                 const updated = [...activeParagraphs];
                 updated[idx] = newHtml;
                 updateActiveParagraphs(updated);
@@ -529,6 +583,31 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
                   {/* Custom Table Block Editor */}
                   {isTableBlock ? (
                     <div className="space-y-3 text-xs pt-1">
+                      {/* Total / Summary Row Toggle */}
+                      <div className="flex items-center justify-between bg-muted/40 p-2 rounded-md border border-border/60">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground select-none">
+                          <input
+                            type="checkbox"
+                            checked={hasTotalRow}
+                            onChange={(e) => {
+                              const nextHasTotal = e.target.checked;
+                              let nextRows = [...tableRows];
+                              if (nextHasTotal && nextRows.length === 1) {
+                                nextRows.push(['Total Gross Compensation', '₹20,000']);
+                              }
+                              updateTableBlock(tableHeaders, nextRows, nextHasTotal);
+                            }}
+                            className="accent-[#7f469b] w-3.5 h-3.5"
+                          />
+                          <span>Highlight Bottom Row as Total / Summary</span>
+                        </label>
+                        {hasTotalRow && (
+                          <span className="text-[10px] bg-[#7f469b]/10 text-[#7f469b] font-bold px-2 py-0.5 rounded-full border border-[#7f469b]/20">
+                            Total Row Enabled
+                          </span>
+                        )}
+                      </div>
+
                       <div className="flex items-center justify-between text-[11px] border-b border-border pb-1.5">
                         <span className="font-semibold text-foreground">Table Columns ({tableHeaders.length})</span>
                         <button
@@ -596,44 +675,56 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
                           </button>
                         </div>
 
-                        {tableRows.map((r, rIdx) => (
-                          <div key={rIdx} className="bg-background border border-input p-2 rounded-md space-y-1.5">
-                            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                              <span className="font-semibold">Row {rIdx + 1}</span>
-                              {tableRows.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newRows = tableRows.filter((_, i) => i !== rIdx);
-                                    updateTableBlock(tableHeaders, newRows);
-                                  }}
-                                  className="text-destructive hover:underline font-semibold"
-                                >
-                                  Delete Row
-                                </button>
-                              )}
+                        {tableRows.map((r, rIdx) => {
+                          const isTotalRowItem = hasTotalRow && rIdx === tableRows.length - 1;
+                          return (
+                            <div
+                              key={rIdx}
+                              className={`p-2 rounded-md space-y-1.5 border transition ${
+                                isTotalRowItem
+                                  ? 'bg-[#7f469b]/5 border-[#7f469b]/40'
+                                  : 'bg-background border-input'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                <span className={`font-semibold ${isTotalRowItem ? 'text-[#7f469b] font-bold' : ''}`}>
+                                  {isTotalRowItem ? `Row ${rIdx + 1} (Total / Summary)` : `Row ${rIdx + 1}`}
+                                </span>
+                                {tableRows.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newRows = tableRows.filter((_, i) => i !== rIdx);
+                                      updateTableBlock(tableHeaders, newRows);
+                                    }}
+                                    className="text-destructive hover:underline font-semibold"
+                                  >
+                                    Delete Row
+                                  </button>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {r.map((cellVal, cIdx) => (
+                                  <Input
+                                    key={cIdx}
+                                    type="text"
+                                    value={cellVal}
+                                    onChange={(e) => {
+                                      const newRows = tableRows.map((rowArr, ri) =>
+                                        ri === rIdx
+                                          ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
+                                          : rowArr
+                                      );
+                                      updateTableBlock(tableHeaders, newRows);
+                                    }}
+                                    placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
+                                    className={`h-7 text-xs ${isTotalRowItem ? 'font-bold bg-white dark:bg-card border-[#7f469b]/30' : 'bg-background/80'}`}
+                                  />
+                                ))}
+                              </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {r.map((cellVal, cIdx) => (
-                                <Input
-                                  key={cIdx}
-                                  type="text"
-                                  value={cellVal}
-                                  onChange={(e) => {
-                                    const newRows = tableRows.map((rowArr, ri) =>
-                                      ri === rIdx
-                                        ? rowArr.map((cv, ci) => (ci === cIdx ? e.target.value : cv))
-                                        : rowArr
-                                    );
-                                    updateTableBlock(tableHeaders, newRows);
-                                  }}
-                                  placeholder={tableHeaders[cIdx] ? `${tableHeaders[cIdx]}...` : `Cell ${cIdx + 1}...`}
-                                  className="h-7 text-xs bg-background/80"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : isListBlock ? (
@@ -741,7 +832,16 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
             onClick={() =>
               updateActiveParagraphs([
                 ...activeParagraphs,
-                buildTableHtml(['Item / Description', 'Details'], [['Phase 1 Delivery', 'Completed']]),
+                buildTableHtml(
+                  ['Salary Component', 'Monthly Amount (INR)', 'Annualized Amount (INR)'],
+                  [
+                    ['Base Salary', '₹15,000', '₹1,80,000'],
+                    ['Internet Allowance', '₹1,000', '₹12,000'],
+                    ['Special Allowance', '₹4,000', '₹48,000'],
+                    ['Total Gross Compensation', '₹20,000', '₹2,40,000'],
+                  ],
+                  true
+                ),
               ])
             }
             className="text-[11px] py-2 bg-muted hover:bg-accent text-foreground rounded-md flex items-center justify-center gap-1 font-semibold transition cursor-pointer"
