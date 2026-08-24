@@ -45,6 +45,18 @@ const renderInlineFormatting = (text: string) => {
 };
 
 /**
+ * Cleans HTML residue and converts embedded raw markdown syntax to HTML tags
+ */
+const cleanAndFormatHtml = (html: string): string => {
+  if (!html) return '';
+  return html
+    .replace(/<span class="ql-ui" contenteditable="false"><\/span>/gi, '')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>');
+};
+
+/**
  * Renders block elements (Section Headings #, Subheadings ##, Minor Subheadings ###)
  * and formatted paragraphs.
  */
@@ -57,7 +69,7 @@ const renderFormattedContent = (content: string, keyPrefix: string = 'text') => 
       <div
         key={keyPrefix}
         className="spiderx-canvas-content text-xs text-slate-800 leading-normal"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: cleanAndFormatHtml(content) }}
       />
     );
   }
@@ -65,7 +77,7 @@ const renderFormattedContent = (content: string, keyPrefix: string = 'text') => 
   // Main Section Heading inside body
   if (content.startsWith('# ')) {
     return (
-      <h2 key={keyPrefix} className="text-sm font-extrabold text-slate-900 uppercase tracking-wide my-3 border-b-2 border-slate-800 pb-1">
+      <h2 key={keyPrefix} className="text-sm font-extrabold text-slate-900 uppercase tracking-wide my-3">
         {renderInlineFormatting(content.slice(2))}
       </h2>
     );
@@ -73,7 +85,7 @@ const renderFormattedContent = (content: string, keyPrefix: string = 'text') => 
   // Sub-heading inside body
   if (content.startsWith('## ')) {
     return (
-      <h3 key={keyPrefix} className="text-xs font-bold text-slate-900 uppercase tracking-tight my-2 border-b border-slate-300 pb-0.5">
+      <h3 key={keyPrefix} className="text-xs font-bold text-slate-900 uppercase tracking-tight my-2">
         {renderInlineFormatting(content.slice(3))}
       </h3>
     );

@@ -638,11 +638,21 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
                     </div>
                   ) : isListBlock ? (
                     <div className="space-y-2 text-xs pt-1">
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-2 gap-1.5 mb-2">
                         <button
                           type="button"
-                          onClick={() => updateListBlock('decimal', listItems)}
-                          className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                          onClick={() => {
+                            let updatedHtml = para;
+                            if (updatedHtml.includes('<ul')) {
+                              updatedHtml = updatedHtml.replace(/<ul[^>]*>/gi, '<ol class="decimal">').replace(/<\/ul>/gi, '</ol>');
+                            } else if (!updatedHtml.includes('<ol')) {
+                              updatedHtml = `<ol class="decimal">${updatedHtml}</ol>`;
+                            }
+                            const updated = [...activeParagraphs];
+                            updated[idx] = updatedHtml;
+                            updateActiveParagraphs(updated);
+                          }}
+                          className={`py-1 px-2 rounded text-[11px] font-semibold transition cursor-pointer ${
                             listStyle === 'decimal'
                               ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
                               : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -652,8 +662,18 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => updateListBlock('disc', listItems)}
-                          className={`py-1 px-2 rounded text-[11px] font-semibold transition ${
+                          onClick={() => {
+                            let updatedHtml = para;
+                            if (updatedHtml.includes('<ol')) {
+                              updatedHtml = updatedHtml.replace(/<ol[^>]*>/gi, '<ul class="disc">').replace(/<\/ol>/gi, '</ul>');
+                            } else if (!updatedHtml.includes('<ul')) {
+                              updatedHtml = `<ul class="disc">${updatedHtml}</ul>`;
+                            }
+                            const updated = [...activeParagraphs];
+                            updated[idx] = updatedHtml;
+                            updateActiveParagraphs(updated);
+                          }}
+                          className={`py-1 px-2 rounded text-[11px] font-semibold transition cursor-pointer ${
                             listStyle === 'disc'
                               ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
                               : 'bg-muted text-muted-foreground hover:text-foreground'
@@ -663,115 +683,15 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
                         </button>
                       </div>
 
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-muted-foreground font-medium">List Items ({listItems.length})</span>
-                          <button
-                            type="button"
-                            onClick={() => updateListBlock(listStyle, [...listItems, ''])}
-                            className="text-xs text-[#7f469b] dark:text-[#a862c8] hover:underline flex items-center gap-1 font-semibold"
-                          >
-                            <Plus className="w-3 h-3" /> Add Item
-                          </button>
-                        </div>
-
-                        {listItems.map((itemText, itemIdx) => (
-                          <div key={itemIdx} className="flex items-center gap-1 bg-background border border-input p-1.5 rounded-md">
-                            <span className="text-[10px] text-muted-foreground font-semibold px-1 min-w-4">
-                              {listStyle === 'decimal' ? `${itemIdx + 1}.` : '•'}
-                            </span>
-                            <Input
-                              id={`list-block-${currentContentPage}-${idx}-item-${itemIdx}`}
-                              type="text"
-                              value={itemText}
-                              onChange={(e) => {
-                                const updatedItems = [...listItems];
-                                updatedItems[itemIdx] = e.target.value;
-                                updateListBlock(listStyle, updatedItems);
-                              }}
-                              placeholder="List item text..."
-                              className="bg-transparent border-none text-xs flex-1 font-sans focus-visible:ring-0 p-1"
-                            />
-                            <button
-                              type="button"
-                              title="Format Highlighted Text as Bold"
-                              onClick={() =>
-                                applySelectionFormatting(
-                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
-                                  '**',
-                                  '**',
-                                  'bold text',
-                                  itemText,
-                                  (newVal) => {
-                                    const updatedItems = [...listItems];
-                                    updatedItems[itemIdx] = newVal;
-                                    updateListBlock(listStyle, updatedItems);
-                                  }
-                                )
-                              }
-                              className="px-1.5 py-0.5 text-[10px] font-bold bg-muted hover:bg-accent rounded text-foreground"
-                            >
-                              B
-                            </button>
-                            <button
-                              type="button"
-                              title="Format Highlighted Text as Italic"
-                              onClick={() =>
-                                applySelectionFormatting(
-                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
-                                  '*',
-                                  '*',
-                                  'italic text',
-                                  itemText,
-                                  (newVal) => {
-                                    const updatedItems = [...listItems];
-                                    updatedItems[itemIdx] = newVal;
-                                    updateListBlock(listStyle, updatedItems);
-                                  }
-                                )
-                              }
-                              className="px-1.5 py-0.5 text-[10px] italic bg-muted hover:bg-accent rounded text-foreground"
-                            >
-                              I
-                            </button>
-                            <button
-                              type="button"
-                              title="Format Highlighted Text as Underline"
-                              onClick={() =>
-                                applySelectionFormatting(
-                                  `list-block-${currentContentPage}-${idx}-item-${itemIdx}`,
-                                  '<u>',
-                                  '</u>',
-                                  'underlined text',
-                                  itemText,
-                                  (newVal) => {
-                                    const updatedItems = [...listItems];
-                                    updatedItems[itemIdx] = newVal;
-                                    updateListBlock(listStyle, updatedItems);
-                                  }
-                                )
-                              }
-                              className="px-1.5 py-0.5 text-[10px] underline bg-muted hover:bg-accent rounded text-foreground"
-                            >
-                              U
-                            </button>
-                            {listItems.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateListBlock(
-                                    listStyle,
-                                    listItems.filter((_, i) => i !== itemIdx)
-                                  )
-                                }
-                                className="text-destructive p-1 hover:bg-accent rounded-md"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <RichTextEditor
+                        value={para}
+                        onChange={(newHtml) => {
+                          const updated = [...activeParagraphs];
+                          updated[idx] = newHtml;
+                          updateActiveParagraphs(updated);
+                        }}
+                        placeholder="Type list items here..."
+                      />
                     </div>
                   ) : (
                     /* Quill Rich Text Editor for Paragraph / Heading */

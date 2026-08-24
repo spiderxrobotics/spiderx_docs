@@ -60,11 +60,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         if (value) {
           isUpdatingRef.current = true;
           if (value.startsWith('<') || value.includes('</')) {
-            quill.clipboard.dangerouslyPasteHTML(value);
+            quill.clipboard.dangerouslyPasteHTML(sanitizeHtmlForQuill(value));
           } else {
             // Handle plain text or markdown conversion for initial load
             const formattedVal = convertMarkdownToHtml(value);
-            quill.clipboard.dangerouslyPasteHTML(formattedVal);
+            quill.clipboard.dangerouslyPasteHTML(sanitizeHtmlForQuill(formattedVal));
           }
           isUpdatingRef.current = false;
         }
@@ -72,7 +72,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         // Handle user edits
         quill.on('text-change', () => {
           if (isUpdatingRef.current) return;
-          const html = containerRef.current?.querySelector('.ql-editor')?.innerHTML || '';
+          let html = containerRef.current?.querySelector('.ql-editor')?.innerHTML || '';
+          html = html.replace(/<span class="ql-ui" contenteditable="false"><\/span>/gi, '');
           isUpdatingRef.current = true;
           onChange(html);
           setTimeout(() => {
@@ -113,9 +114,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       isUpdatingRef.current = true;
       const range = quillRef.current.getSelection();
       if (normValue.startsWith('<') || normValue.includes('</')) {
-        quillRef.current.clipboard.dangerouslyPasteHTML(normValue);
+        quillRef.current.clipboard.dangerouslyPasteHTML(sanitizeHtmlForQuill(normValue));
       } else {
-        quillRef.current.clipboard.dangerouslyPasteHTML(convertMarkdownToHtml(normValue));
+        quillRef.current.clipboard.dangerouslyPasteHTML(sanitizeHtmlForQuill(convertMarkdownToHtml(normValue)));
       }
       if (range) {
         quillRef.current.setSelection(range);
@@ -132,6 +133,18 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     </div>
   );
 };
+
+/**
+ * Sanitizes HTML string for Quill, removing UI artifacts and converting embedded markdown
+ */
+function sanitizeHtmlForQuill(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<span class="ql-ui" contenteditable="false"><\/span>/gi, '')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>');
+}
 
 /**
  * Converts legacy markdown syntax to clean HTML for Quill initialization
