@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw } from 'lucide-react';
+import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { exportLetterheadToPdf } from '@/utils/pdfExporter';
+import { parseMarkdownToDocumentBlocks, distributeBlocksAcrossPages } from '@/utils/markdownParser';
 
 interface HeaderNavbarProps {
   document: DocumentData;
@@ -36,34 +37,70 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
 }) => {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
-  // Export JSON backup file
-  const handleExportJson = () => {
-    const jsonString = JSON.stringify(document, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = window.document.createElement('a');
-    a.href = url;
-    a.download = `${document.title.replace(/\s+/g, '_')}_SpiderX_Docs.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // Import JSON backup file
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Load & Parse Markdown (.md) File
+  const handleLoadMdFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        try {
-          if (event.target?.result) {
-            const parsed = JSON.parse(event.target.result as string);
-            onImportJson(parsed);
-          }
-        } catch (err) {
-          alert('Invalid SpiderX document JSON file.');
+        const text = event.target?.result as string;
+        if (text) {
+          const {
+            paragraphs: newBlocks,
+            subject,
+            mainHeading,
+            docHeaderAddress,
+            refNumber,
+            date,
+            recipient: parsedRec,
+            recipientAcceptance,
+          } = parseMarkdownToDocumentBlocks(text);
+
+          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks);
+
+          const updatedDoc: DocumentData = {
+            ...document,
+            ...(date ? { date } : {}),
+            ...(refNumber ? { refNumber } : {}),
+            recipient: {
+              ...document.recipient,
+              showRecipient: true,
+              ...(parsedRec?.name ? { name: parsedRec.name } : {}),
+              ...(parsedRec?.addressLine1 ? { addressLine1: parsedRec.addressLine1 } : {}),
+              ...(parsedRec?.cityStateZip ? { cityStateZip: parsedRec.cityStateZip } : {}),
+              ...(parsedRec?.email ? { email: parsedRec.email } : {}),
+            },
+            signatory: {
+              ...document.signatory,
+              ...(recipientAcceptance
+                ? {
+                    showRecipientAcceptance: true,
+                    ...(recipientAcceptance.title ? { recipientAcceptanceTitle: recipientAcceptance.title } : {}),
+                    ...(recipientAcceptance.text ? { recipientAcceptanceText: recipientAcceptance.text } : {}),
+                  }
+                : {}),
+            },
+            body: {
+              ...document.body,
+              paragraphs: page1Paragraphs,
+              docHeaderAddress: '',
+              showMainHeading: false,
+              mainHeading: '',
+              ...(subject ? { showSubject: true, subject } : {}),
+              multiPage: {
+                ...(document.body.multiPage || {}),
+                enableMultiPage: distributedPages.length > 0,
+                pages: distributedPages,
+                continuedNoticeText: document.body.multiPage?.continuedNoticeText || '...Continued on Next Page',
+              },
+            },
+          };
+
+          onImportJson(updatedDoc);
         }
       };
       reader.readAsText(file);
+      e.target.value = '';
     }
   };
 
@@ -171,33 +208,21 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           )}
         </Button>
 
-        {/* Export JSON */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportJson}
-          className="gap-1.5 text-xs font-semibold rounded-md hidden lg:flex"
-          title="Backup document to JSON"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Export JSON</span>
-        </Button>
-
-        {/* Import JSON */}
+        {/* Load MD File */}
         <Button
           variant="outline"
           size="sm"
           asChild
-          className="gap-1.5 text-xs font-semibold cursor-pointer rounded-md hidden lg:flex"
-          title="Restore document from JSON"
+          className="gap-1.5 text-xs font-bold cursor-pointer rounded-md border-[#7f469b]/40 text-[#7f469b] hover:bg-[#7f469b]/10 dark:text-[#a862c8]"
+          title="Load document content from Markdown (.md) file"
         >
-          <label>
-            <Upload className="w-3.5 h-3.5" />
-            <span>Import JSON</span>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <FileText className="w-3.5 h-3.5" />
+            <span>Load MD File</span>
             <input
               type="file"
-              accept=".json"
-              onChange={handleImportJson}
+              accept=".md,.txt,.markdown"
+              onChange={handleLoadMdFile}
               className="hidden"
             />
           </label>

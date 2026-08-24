@@ -41,6 +41,13 @@ export interface DirectorSignatory {
   
   // Alignment arrangement for dual signatories
   dualLayout: 'side-by-side' | 'stacked' | 'split-left-right';
+
+  // Candidate / Recipient / Employee / Student Acceptance Block (Right Column)
+  showRecipientAcceptance?: boolean;
+  recipientAcceptanceTitle?: string; // e.g. "Candidate Acceptance", "Employee Acceptance", "Student Acceptance"
+  recipientAcceptanceText?: string; // e.g. "I have read, understood, and accepted the terms of this offer."
+  showAcceptanceSignatureLine?: boolean;
+  showAcceptanceDateLine?: boolean;
 }
 
 export interface KeyValuePair {

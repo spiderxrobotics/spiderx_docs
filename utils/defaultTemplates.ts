@@ -96,6 +96,11 @@ export const DEFAULT_DOCUMENT: DocumentData = {
     director2SealImage: null,
     showDirector2Seal: false,
     dualLayout: 'side-by-side',
+    showRecipientAcceptance: true,
+    recipientAcceptanceTitle: 'Candidate Acceptance',
+    recipientAcceptanceText: 'I have read, understood, and accepted the terms of this offer.',
+    showAcceptanceSignatureLine: true,
+    showAcceptanceDateLine: true,
   },
   layout: {
     marginTopMm: 34,
