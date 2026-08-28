@@ -221,7 +221,9 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
           recipientAcceptance,
         } = parseMarkdownToDocumentBlocks(text);
 
-        const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks);
+        const hasRec = parsedRec?.name || document.recipient?.showRecipient !== false;
+        const p1Cap = hasRec ? 11.8 : 15.5;
+        const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, p1Cap, 14.0);
 
         const updatedDoc: DocumentData = {
           ...document,
@@ -282,7 +284,9 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
 
     if (allCombined.length === 0) return;
 
-    const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(allCombined, 5, 7);
+    const hasRec = document.recipient?.showRecipient !== false;
+    const targetP1Weight = hasRec ? 11.8 : 15.5;
+    const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(allCombined, targetP1Weight, 14.0);
 
     updateBody({
       paragraphs: page1Paragraphs,
@@ -384,22 +388,82 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
         </div>
 
         {document.body.multiPage?.enableMultiPage && (
-          <div className="pt-2 border-t border-border text-xs">
-            <label className="text-muted-foreground mb-1 block font-medium">Footer Continuation Notice</label>
-            <Input
-              type="text"
-              value={document.body.multiPage?.continuedNoticeText || ''}
-              onChange={(e) =>
-                updateBody({
-                  multiPage: {
-                    ...(document.body.multiPage || {}),
-                    continuedNoticeText: e.target.value,
-                  },
-                })
-              }
-              placeholder="e.g. ...Continued on Next Page"
-              className="bg-background border-input rounded-md"
-            />
+          <div className="pt-2 border-t border-border text-xs space-y-3">
+            <div>
+              <label className="text-muted-foreground mb-1 block font-medium">Footer Continuation Notice</label>
+              <Input
+                type="text"
+                value={document.body.multiPage?.continuedNoticeText || ''}
+                onChange={(e) =>
+                  updateBody({
+                    multiPage: {
+                      ...(document.body.multiPage || {}),
+                      continuedNoticeText: e.target.value,
+                    },
+                  })
+                }
+                placeholder="e.g. ...Continued on Next Page"
+                className="bg-background border-input rounded-md"
+              />
+            </div>
+
+            {/* Continuation Page Header Toggles */}
+            <div className="space-y-2 pt-2 border-t border-border/60">
+              <label className="text-muted-foreground font-semibold block text-[11px] uppercase tracking-wider">
+                Continuation Page Header (Page 2+)
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs">
+                <input
+                  type="checkbox"
+                  checked={document.body.multiPage?.showHeaderBarOnContinuation !== false}
+                  onChange={(e) =>
+                    updateBody({
+                      multiPage: {
+                        ...(document.body.multiPage || {}),
+                        showHeaderBarOnContinuation: e.target.checked,
+                      },
+                    })
+                  }
+                  className="accent-[#7f469b] w-4 h-4 cursor-pointer"
+                />
+                <span>Show Top Header Bar on Page 2+</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs">
+                <input
+                  type="checkbox"
+                  checked={document.body.multiPage?.showHeaderRefNumber === true}
+                  onChange={(e) =>
+                    updateBody({
+                      multiPage: {
+                        ...(document.body.multiPage || {}),
+                        showHeaderRefNumber: e.target.checked,
+                      },
+                    })
+                  }
+                  className="accent-[#7f469b] w-4 h-4 cursor-pointer"
+                />
+                <span>Show Ref No. in Continuation Header</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs">
+                <input
+                  type="checkbox"
+                  checked={document.body.multiPage?.showContinuationNoticeHeader === true}
+                  onChange={(e) =>
+                    updateBody({
+                      multiPage: {
+                        ...(document.body.multiPage || {}),
+                        showContinuationNoticeHeader: e.target.checked,
+                      },
+                    })
+                  }
+                  className="accent-[#7f469b] w-4 h-4 cursor-pointer"
+                />
+                <span>Show "(Continuation — Page X)" Title</span>
+              </label>
+            </div>
           </div>
         )}
       </div>

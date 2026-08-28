@@ -164,11 +164,11 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
 
           const currentTopMm = isPage1
             ? document.layout.marginTopMm
-            : targetPg?.marginTopMm ?? document.layout.page2MarginTopMm ?? 28;
+            : targetPg?.marginTopMm ?? document.layout.page2MarginTopMm ?? 38;
 
           const currentBottomMm = isPage1
             ? document.layout.marginBottomMm
-            : targetPg?.marginBottomMm ?? document.layout.page2MarginBottomMm ?? 25;
+            : targetPg?.marginBottomMm ?? document.layout.page2MarginBottomMm ?? 52;
 
           const currentLeftMm = isPage1
             ? document.layout.paddingLeftMm
@@ -197,6 +197,23 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
               updatedPages[pgIdx] = { ...updatedPages[pgIdx], marginBottomMm: val };
               updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
               updateLayout({ page2MarginBottomMm: val });
+            }
+          };
+
+          const handleApplyStandardClearance = () => {
+            updateLayout({
+              marginTopMm: 40,
+              marginBottomMm: 52,
+              page2MarginTopMm: 38,
+              page2MarginBottomMm: 52,
+            });
+            if (pagesList.length > 0) {
+              const updatedPages = pagesList.map((p) => ({
+                ...p,
+                marginTopMm: 38,
+                marginBottomMm: 52,
+              }));
+              updateBody({ multiPage: { ...(document.body.multiPage || {}), pages: updatedPages } });
             }
           };
 
@@ -242,6 +259,15 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
                 ))}
               </div>
 
+              {/* Quick Standard Clearance Preset Button */}
+              <button
+                type="button"
+                onClick={handleApplyStandardClearance}
+                className="w-full py-1.5 px-3 bg-[#7f469b]/10 border border-[#7f469b]/30 text-[#7f469b] dark:text-[#a862c8] hover:bg-[#7f469b]/20 font-bold text-xs rounded-md transition flex items-center justify-center gap-1.5"
+              >
+                <span>Reset Letterhead Safe Clearance (40mm Top / 52mm Bottom)</span>
+              </button>
+
               <div className="text-[11px] font-semibold text-[#7f469b] dark:text-[#a862c8] flex items-center justify-between pt-1">
                 <span>Page {selectedAlignmentPageNum} Header & Footer Clearance</span>
                 <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">
@@ -254,14 +280,14 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
                 <div className="flex justify-between text-xs">
                   <span className="text-foreground font-medium">Header Clearance (Top Margin)</span>
                   <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {currentTopMm} mm
+                    {currentTopMm} mm (~{Math.round(currentTopMm * 3.7795)} px)
                   </span>
                 </div>
                 <input
                   type="range"
                   min="10"
-                  max="100"
-                  step="1"
+                  max="120"
+                  step="0.5"
                   value={currentTopMm}
                   onChange={(e) => handleTopChange(Number(e.target.value))}
                   className="w-full accent-[#7f469b] cursor-pointer"
@@ -276,14 +302,14 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
                 <div className="flex justify-between text-xs">
                   <span className="text-foreground font-medium">Footer Clearance (Bottom Margin)</span>
                   <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {currentBottomMm} mm
+                    {currentBottomMm} mm (~{Math.round(currentBottomMm * 3.7795)} px)
                   </span>
                 </div>
                 <input
                   type="range"
                   min="10"
-                  max="90"
-                  step="1"
+                  max="120"
+                  step="0.5"
                   value={currentBottomMm}
                   onChange={(e) => handleBottomChange(Number(e.target.value))}
                   className="w-full accent-[#7f469b] cursor-pointer"

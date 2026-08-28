@@ -85,6 +85,9 @@ export interface MultiPageSettings {
   showContinuedNotice?: boolean; // Displays "...Continued on Next Page" at bottom of pages
   continuedNoticeText?: string; // Custom string e.g. "...Continued on Next Page"
   showPageNumbers?: boolean; // Displays "Page X of Y" in footer
+  showHeaderRefNumber?: boolean; // Displays refNumber in continuation page header (Default: false)
+  showContinuationNoticeHeader?: boolean; // Displays "(Continuation — Page X)" in header (Default: false)
+  showHeaderBarOnContinuation?: boolean; // Displays top header bar on continuation pages (Default: true)
   pages?: DocumentPage[]; // Dynamic list of additional pages (Page 2, Page 3, Page 4...)
   page2Paragraphs?: string[]; // Backward compatibility fallback
   pageNumber?: number;

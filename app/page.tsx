@@ -21,7 +21,6 @@ export default function Home() {
     canRedo,
   } = useDocumentStorage();
 
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [zoomScale, setZoomScale] = useState<number>(0.9);
   const [sidebarWidth, setSidebarWidth] = useState<number>(380);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -33,38 +32,13 @@ export default function Home() {
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState<boolean>(false);
   const [activeDirectorTarget, setActiveDirectorTarget] = useState<1 | 2>(1);
 
-  // Load saved theme & sidebar preferences on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('spiderx_theme') as 'light' | 'dark';
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-
-    const savedWidth = localStorage.getItem('spiderx_sidebar_width');
-    if (savedWidth) {
-      setSidebarWidth(Number(savedWidth));
-    }
-  }, []);
-
-  // Synchronize active theme to document.documentElement (.dark class and colorScheme)
+  // Ensure light theme is forced permanently
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      if (theme === 'dark') {
-        window.document.documentElement.classList.add('dark');
-        window.document.documentElement.style.colorScheme = 'dark';
-      } else {
-        window.document.documentElement.classList.remove('dark');
-        window.document.documentElement.style.colorScheme = 'light';
-      }
+      window.document.documentElement.classList.remove('dark');
+      window.document.documentElement.style.colorScheme = 'light';
     }
-  }, [theme]);
-
-  // Light / Dark Theme toggle
-  const handleToggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('spiderx_theme', newTheme);
-  };
+  }, []);
 
   // Sidebar width resize handler
   const handleSidebarWidthChange = (newWidth: number) => {
@@ -122,14 +96,12 @@ export default function Home() {
       {/* Top Header Navbar */}
       <HeaderNavbar
         document={document}
-        theme={theme}
         saveStatus={saveStatus}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
         onRedo={redo}
         onRestore={() => setIsResetModalOpen(true)}
-        onToggleTheme={handleToggleTheme}
         onImportJson={updateDocument}
         onPrint={handlePrint}
       />
