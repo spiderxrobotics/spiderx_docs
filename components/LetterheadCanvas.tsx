@@ -817,26 +817,43 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                         }}
                       >
                   <div className="flex-1 flex flex-col justify-start">
-                    {/* Header Bar */}
-                    <div className="flex items-center justify-between text-xs mb-6 pb-2 border-b border-slate-200/80">
-                      <span className="font-semibold text-slate-700">
-                        {refNumber} (Continuation — Page {pageNum})
-                      </span>
-                      <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded-md">
-                        Page {pageNum} of {totalPages}
-                      </span>
-                    </div>
+                    {/* Continuation Header Bar */}
+                    {body.multiPage?.showHeaderBarOnContinuation !== false && (
+                      (() => {
+                        const headerText = [
+                          body.multiPage?.showHeaderRefNumber ? refNumber : null,
+                          body.multiPage?.showContinuationNoticeHeader ? `(Continuation — Page ${pageNum})` : null,
+                        ].filter(Boolean).join(' ');
+
+                        if (!headerText && body.multiPage?.showPageNumbers === false) {
+                          return null;
+                        }
+
+                        return (
+                          <div className={`flex items-center justify-between text-xs mb-4 pb-1.5 ${headerText ? 'border-b border-slate-200/80' : ''}`}>
+                            <span className="font-semibold text-slate-700">
+                              {headerText}
+                            </span>
+                            {body.multiPage?.showPageNumbers !== false && (
+                              <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded-md ml-auto">
+                                Page {pageNum} of {totalPages}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()
+                    )}
 
                     {/* Page Specific Paragraphs & Headings */}
                     {pg.paragraphs.length > 0 && (
-                      <div className="space-y-3 text-slate-800 leading-normal mb-4">
+                      <div className="space-y-3 text-slate-800 leading-normal">
                         {pg.paragraphs.map((p, idx) => renderFormattedContent(p, `p${pageNum}-${idx}`))}
                       </div>
                     )}
 
-                    {/* Bullet Points on this Page */}
+                    {/* Page-Specific Bullet Points if configured per page */}
                     {pg.showBulletPoints && (pg.bulletPoints || []).length > 0 && (
-                      <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
+                      <div className="my-3 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
                         {pg.bulletTitle && (
                           <p className="font-semibold text-xs text-slate-900 mb-2">
                             {pg.bulletTitle}
@@ -852,9 +869,9 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                       </div>
                     )}
 
-                    {/* Table on this Page */}
+                    {/* Page-Specific Table if configured per page */}
                     {pg.showTable && (pg.tableRows || []).length > 0 && (
-                      <div className="my-4 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+                      <div className="my-3 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
                         {pg.tableTitle && (
                           <div className="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200">
                             <p className="font-semibold text-xs text-slate-800 uppercase tracking-wide">
@@ -882,56 +899,9 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                       </div>
                     )}
 
-                    {/* Last Page Extras: Global Bullet Points & Table if configured on document body */}
-                    {isLastPage && body.showBulletPoints && body.bulletPoints.length > 0 && !pg.showBulletPoints && (
-                      <div className="my-4 p-3 bg-[#7f469b]/5 border border-[#7f469b]/20 rounded-lg">
-                        {body.bulletTitle && (
-                          <p className="font-semibold text-xs text-slate-900 mb-2">
-                            {body.bulletTitle}
-                          </p>
-                        )}
-                        <ul className="list-disc list-inside space-y-1 text-xs text-slate-700">
-                          {body.bulletPoints.map((point, idx) => (
-                            <li key={idx}>
-                              <span className="text-slate-800 font-medium">{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {isLastPage && body.showTable && (body.tableRows || []).length > 0 && !pg.showTable && (
-                      <div className="my-4 border border-slate-200 rounded-lg overflow-hidden shadow-xs">
-                        {body.tableTitle && (
-                          <div className="bg-slate-100/80 px-3 py-1.5 border-b border-slate-200">
-                            <p className="font-semibold text-xs text-slate-800 uppercase tracking-wide">
-                              {body.tableTitle}
-                            </p>
-                          </div>
-                        )}
-                        <table className="w-full text-xs text-left">
-                          <tbody>
-                            {(body.tableRows || []).map((row, idx) => (
-                              <tr
-                                key={idx}
-                                className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
-                              >
-                                <td className="py-1.5 px-3 font-semibold text-slate-700 border-r border-slate-200/60 w-1/3">
-                                  {row.label}
-                                </td>
-                                <td className="py-1.5 px-3 text-slate-900 font-medium">
-                                  {row.value}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
                     {/* Closing Salutation on Last Page */}
                     {isLastPage && body.closingSalutation && (
-                      <div className="mt-6 text-xs font-medium text-slate-700">
+                      <div className="mt-4 text-xs font-medium text-slate-700">
                         <p>{body.closingSalutation}</p>
                       </div>
                     )}
@@ -939,7 +909,7 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
 
                   {/* Footer / Signatures */}
                   {!isLastPage ? (
-                    <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                    <div className="pt-3 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500 font-medium mt-auto">
                       <span className="italic font-semibold text-[#7f469b]">
                         {body.multiPage?.continuedNoticeText || '...Continued on Next Page'}
                       </span>

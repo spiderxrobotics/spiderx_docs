@@ -36,7 +36,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = ({
 
         const updatedBody = { ...document.body };
         if (newBlocks.length > 0) {
-          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, 5, 7);
+          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, 11.8, 14.0);
 
           updatedBody.paragraphs = page1Paragraphs;
 

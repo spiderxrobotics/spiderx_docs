@@ -103,8 +103,10 @@ export const DEFAULT_DOCUMENT: DocumentData = {
     showAcceptanceDateLine: true,
   },
   layout: {
-    marginTopMm: 34,
-    marginBottomMm: 40,
+    marginTopMm: 40, // 40mm top header clearance (clears top logo banner)
+    marginBottomMm: 52, // 52mm bottom footer clearance (clears bottom purple footer)
+    page2MarginTopMm: 38, // 38mm top clearance for Page 2+ (starts below top logo banner)
+    page2MarginBottomMm: 52, // 52mm bottom clearance for Page 2+ (ends above bottom footer)
     paddingLeftMm: 24,
     paddingRightMm: 24,
     fontFamily: 'Inter',

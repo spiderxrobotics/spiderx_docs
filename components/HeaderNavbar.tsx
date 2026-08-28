@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData } from '@/types/letterhead';
-import { Printer, Download, Upload, Bot, Sun, Moon, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw, FileText } from 'lucide-react';
+import { Printer, Download, Upload, Bot, FileDown, Loader2, Undo2, Redo2, Check, Sparkles, RotateCcw, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { exportLetterheadToPdf } from '@/utils/pdfExporter';
@@ -10,28 +10,24 @@ import { parseMarkdownToDocumentBlocks, distributeBlocksAcrossPages } from '@/ut
 
 interface HeaderNavbarProps {
   document: DocumentData;
-  theme: 'light' | 'dark';
   saveStatus?: 'saved' | 'editing' | 'restored';
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
   onRestore?: () => void;
-  onToggleTheme: () => void;
   onImportJson: (data: DocumentData) => void;
   onPrint: () => void;
 }
 
 export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
   document,
-  theme,
   saveStatus = 'saved',
   canUndo = false,
   canRedo = false,
   onUndo,
   onRedo,
   onRestore,
-  onToggleTheme,
   onImportJson,
   onPrint,
 }) => {
@@ -56,7 +52,9 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             recipientAcceptance,
           } = parseMarkdownToDocumentBlocks(text);
 
-          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks);
+          const hasRec = parsedRec?.name || document.recipient?.showRecipient !== false;
+          const p1Cap = hasRec ? 11.8 : 15.5;
+          const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, p1Cap, 14.0);
 
           const updatedDoc: DocumentData = {
             ...document,
@@ -186,27 +184,6 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
             <Redo2 className="w-3.5 h-3.5" />
           </Button>
         </div>
-
-        {/* Light / Dark Mode Toggle Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onToggleTheme}
-          className="gap-1.5 text-xs font-semibold px-3 border-border hover:bg-accent rounded-md"
-          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-        >
-          {theme === 'dark' ? (
-            <>
-              <Sun className="w-4 h-4 text-amber-400" />
-              <span className="hidden md:inline">Light Mode</span>
-            </>
-          ) : (
-            <>
-              <Moon className="w-4 h-4 text-[#7f469b]" />
-              <span className="hidden md:inline">Dark Mode</span>
-            </>
-          )}
-        </Button>
 
         {/* Load MD File */}
         <Button

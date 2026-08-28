@@ -345,31 +345,33 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
  * Calculates visual height weight for document blocks
  */
 export function getBlockWeight(html: string): number {
-  if (!html) return 1;
+  if (!html) return 0.5;
 
-  // Table block weight: base 3 + 1 per row
+  // Table block weight: base 2.5 + 0.9 per row
   if (html.includes('<table')) {
     const trCount = (html.match(/<tr/gi) || []).length;
-    return Math.max(3, trCount * 1.0);
+    return Math.max(2.5, trCount * 0.9);
   }
 
-  // List block weight: base 1.2 + 0.6 per item
+  // List block weight: base 0.3 + 0.45 per item (accurately matching pixel height)
   if (html.includes('<ol') || html.includes('<ul')) {
     const liCount = (html.match(/<li/gi) || []).length;
-    return Math.max(1.2, liCount * 0.6);
+    return Math.max(0.6, 0.3 + liCount * 0.45);
   }
 
   // Heading weights
-  if (html.startsWith('<h1>')) return 1.2;
-  if (html.startsWith('<h2>')) return 1.0;
-  if (html.startsWith('<h3>')) return 0.9;
+  if (html.startsWith('<h1>')) return 1.1;
+  if (html.startsWith('<h2>')) return 0.9;
+  if (html.startsWith('<h3>')) return 0.8;
 
-  // Text length weighting
+  // Text length weighting (calibrated accurately to font line height)
   const cleanText = html.replace(/<[^>]*>/g, '');
-  if (cleanText.length > 350) return 2.5;
-  if (cleanText.length > 180) return 1.8;
+  if (cleanText.length > 320) return 2.6; // ~4-5 lines of text
+  if (cleanText.length > 220) return 2.0; // ~3-4 lines of text
+  if (cleanText.length > 130) return 1.4; // ~2-3 lines of text
+  if (cleanText.length > 60) return 1.0;  // ~1-2 lines of text
 
-  return 1;
+  return 0.7;
 }
 
 /**
@@ -378,8 +380,8 @@ export function getBlockWeight(html: string): number {
  */
 export function distributeBlocksAcrossPages(
   allBlocks: string[],
-  targetPage1Weight: number = 12.8,
-  targetPageNWeight: number = 13.2
+  targetPage1Weight: number = 11.8,
+  targetPageNWeight: number = 14.0
 ): DistributedPagesResult {
   const cleanBlocks = allBlocks.filter((b) => b !== '<!-- PAGE_BREAK -->');
 
@@ -415,7 +417,7 @@ export function distributeBlocksAcrossPages(
   });
 
   // If total content fits on Page 1 without overflow, keep all on Page 1
-  if (totalWeight <= targetPage1Weight + 1) {
+  if (totalWeight <= targetPage1Weight + 0.8) {
     return {
       page1Paragraphs: cleanBlocks,
       additionalPages: [],
