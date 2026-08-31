@@ -221,9 +221,19 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
           recipientAcceptance,
         } = parseMarkdownToDocumentBlocks(text);
 
-        const hasRec = parsedRec?.name || document.recipient?.showRecipient !== false;
-        const p1Cap = hasRec ? 11.8 : 15.5;
-        const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(newBlocks, p1Cap, 14.0);
+        const hasRec = Boolean(parsedRec?.name) || document.recipient?.showRecipient !== false;
+        const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(
+          newBlocks,
+          undefined,
+          undefined,
+          {
+            marginTopMm: document.layout.marginTopMm,
+            marginBottomMm: document.layout.marginBottomMm,
+            page2MarginTopMm: document.layout.page2MarginTopMm,
+            page2MarginBottomMm: document.layout.page2MarginBottomMm,
+            hasRecipient: hasRec,
+          }
+        );
 
         const updatedDoc: DocumentData = {
           ...document,
@@ -285,8 +295,18 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
     if (allCombined.length === 0) return;
 
     const hasRec = document.recipient?.showRecipient !== false;
-    const targetP1Weight = hasRec ? 11.8 : 15.5;
-    const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(allCombined, targetP1Weight, 14.0);
+    const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(
+      allCombined,
+      undefined,
+      undefined,
+      {
+        marginTopMm: document.layout.marginTopMm,
+        marginBottomMm: document.layout.marginBottomMm,
+        page2MarginTopMm: document.layout.page2MarginTopMm,
+        page2MarginBottomMm: document.layout.page2MarginBottomMm,
+        hasRecipient: hasRec,
+      }
+    );
 
     updateBody({
       paragraphs: page1Paragraphs,

@@ -375,14 +375,41 @@ export function getBlockWeight(html: string): number {
 }
 
 /**
+ * Dynamically calculates available weight capacity based on actual top/bottom margin clearances in mm
+ */
+export function calculatePageWeightCapacity(
+  topMm: number = 40,
+  bottomMm: number = 52,
+  hasRecipient: boolean = false
+): number {
+  const availableMm = Math.max(40, 297 - topMm - bottomMm - (hasRecipient ? 35 : 0));
+  return Number((availableMm * 0.0683).toFixed(1));
+}
+
+/**
  * Height-weighted dynamic page distribution algorithm
  * Uses chunked list blocks to fill Page 1 and Page N densely (~95%) without gaps or footer collisions
  */
 export function distributeBlocksAcrossPages(
   allBlocks: string[],
-  targetPage1Weight: number = 11.8,
-  targetPageNWeight: number = 14.0
+  targetPage1Weight?: number,
+  targetPageNWeight?: number,
+  layoutOptions?: {
+    marginTopMm?: number;
+    marginBottomMm?: number;
+    page2MarginTopMm?: number;
+    page2MarginBottomMm?: number;
+    hasRecipient?: boolean;
+  }
 ): DistributedPagesResult {
+  const p1Top = layoutOptions?.marginTopMm ?? 40;
+  const p1Bottom = layoutOptions?.marginBottomMm ?? 52;
+  const p2Top = layoutOptions?.page2MarginTopMm ?? 38;
+  const p2Bottom = layoutOptions?.page2MarginBottomMm ?? 52;
+  const hasRec = layoutOptions?.hasRecipient ?? true;
+
+  const actualTargetPage1 = targetPage1Weight ?? calculatePageWeightCapacity(p1Top, p1Bottom, hasRec);
+  const actualTargetPageN = targetPageNWeight ?? calculatePageWeightCapacity(p2Top, p2Bottom, false);
   const cleanBlocks = allBlocks.filter((b) => b !== '<!-- PAGE_BREAK -->');
 
   // Check if explicit page breaks exist
@@ -417,7 +444,7 @@ export function distributeBlocksAcrossPages(
   });
 
   // If total content fits on Page 1 without overflow, keep all on Page 1
-  if (totalWeight <= targetPage1Weight + 0.8) {
+  if (totalWeight <= actualTargetPage1 + 0.8) {
     return {
       page1Paragraphs: cleanBlocks,
       additionalPages: [],
@@ -433,7 +460,7 @@ export function distributeBlocksAcrossPages(
     const nextBlock = remainingBlocks[0];
     const w = getBlockWeight(nextBlock);
 
-    if (currentWeight > 0 && currentWeight + w > targetPage1Weight) {
+    if (currentWeight > 0 && currentWeight + w > actualTargetPage1) {
       // Prevent Orphan Headings: If the last item on Page 1 is a heading (h1, h2, h3), push it to Page 2
       if (page1Paragraphs.length > 0) {
         const lastBlock = page1Paragraphs[page1Paragraphs.length - 1];
@@ -459,7 +486,7 @@ export function distributeBlocksAcrossPages(
       const nextBlock = remainingBlocks[0];
       const w = getBlockWeight(nextBlock);
 
-      if (pWeight > 0 && pWeight + w > targetPageNWeight) {
+      if (pWeight > 0 && pWeight + w > actualTargetPageN) {
         // Prevent Orphan Headings on additional pages
         if (pageBlocks.length > 0) {
           const lastBlock = pageBlocks[pageBlocks.length - 1];

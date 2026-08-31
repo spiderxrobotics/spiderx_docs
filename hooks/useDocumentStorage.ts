@@ -30,11 +30,6 @@ export function useDocumentStorage() {
         const sanitizedLayout = {
           ...DEFAULT_DOCUMENT.layout,
           ...layoutData,
-          // Clean legacy 92.6mm (350px) margin overrides stored in LocalStorage
-          marginTopMm: (layoutData.marginTopMm && layoutData.marginTopMm > 75) ? 40 : (layoutData.marginTopMm || 40),
-          marginBottomMm: (layoutData.marginBottomMm && (layoutData.marginBottomMm > 75 || layoutData.marginBottomMm < 48)) ? 52 : (layoutData.marginBottomMm || 52),
-          page2MarginTopMm: (layoutData.page2MarginTopMm && layoutData.page2MarginTopMm > 75) ? 38 : (layoutData.page2MarginTopMm || 38),
-          page2MarginBottomMm: (layoutData.page2MarginBottomMm && (layoutData.page2MarginBottomMm > 75 || layoutData.page2MarginBottomMm < 48)) ? 52 : (layoutData.page2MarginBottomMm || 52),
         };
 
         const sanitizedDoc: DocumentData = {
