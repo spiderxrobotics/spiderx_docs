@@ -199,11 +199,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
             {/* Director 1 */}
             <div className="flex-1 relative">
               <div className="relative inline-block min-w-[200px] w-full">
-                {signatory.showSeal && signatory.sealImage && (
+                {signatory.showSeal && signatory.sealImage && signatory.sealPosition !== 'page-center' && (
                   <div
-                    className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
+                    className={`absolute -top-10 pointer-events-none z-10 select-none ${
+                      signatory.sealPosition === 'right'
+                        ? '-right-6'
+                        : signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
+                        ? 'left-1/2 -translate-x-1/2'
+                        : '-left-6'
+                    }`}
                     style={{
-                      transform: `scale(${signatory.sealScale || 1.0})`,
+                      transform:
+                        signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
+                          ? `translateX(-50%) scale(${signatory.sealScale || 1.0})`
+                          : `scale(${signatory.sealScale || 1.0})`,
                       opacity: signatory.sealOpacity || 0.85,
                     }}
                   >
@@ -281,11 +290,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
           >
             {/* Company / Director Signature Box */}
             <div className="relative inline-block min-w-[200px] flex-1 max-w-[280px]">
-              {signatory.showSeal && signatory.sealImage && (
+              {signatory.showSeal && signatory.sealImage && signatory.sealPosition !== 'page-center' && (
                 <div
-                  className="absolute -top-10 -left-6 pointer-events-none z-10 select-none"
+                  className={`absolute -top-10 pointer-events-none z-10 select-none ${
+                    signatory.sealPosition === 'right'
+                      ? '-right-6'
+                      : signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
+                      ? 'left-1/2 -translate-x-1/2'
+                      : '-left-6'
+                  }`}
                   style={{
-                    transform: `scale(${signatory.sealScale || 1.0})`,
+                    transform:
+                      signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
+                        ? `translateX(-50%) scale(${signatory.sealScale || 1.0})`
+                        : `scale(${signatory.sealScale || 1.0})`,
                     opacity: signatory.sealOpacity || 0.85,
                   }}
                 >
@@ -429,6 +447,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
             </div>
           )}
 
+          {/* Page Center Official Stamp / Seal Overlay */}
+          {signatory.showSeal && signatory.sealImage && signatory.sealPosition === 'page-center' && (
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 select-none"
+              style={{
+                transform: `translate(-50%, -50%) scale(${signatory.sealScale || 1.0})`,
+                opacity: signatory.sealOpacity || 0.85,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={signatory.sealImage} alt="Centered Official Stamp" className="w-48 h-48 object-contain" />
+            </div>
+          )}
+
           {/* Visual Alignment Guides */}
           {layout.showAlignmentGuides && (
             <div className="no-print absolute inset-0 pointer-events-none z-10">
@@ -465,18 +497,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
           {/* Page 1 Document Body */}
           <div
             ref={page1ContentRef}
-            className="relative z-20 flex flex-col justify-between h-full text-slate-900"
+            className="absolute z-20 flex flex-col justify-between text-slate-900"
             style={{
-              paddingTop: `${topPx}px`,
-              paddingBottom: `${bottomPx}px`,
-              paddingLeft: `${leftPx}px`,
-              paddingRight: `${rightPx}px`,
+              top: `${topPx}px`,
+              bottom: `${bottomPx}px`,
+              left: `${leftPx}px`,
+              right: `${rightPx}px`,
+              height: `calc(297mm - ${layout.marginTopMm}mm - ${layout.marginBottomMm}mm)`,
+              maxHeight: `calc(297mm - ${layout.marginTopMm}mm - ${layout.marginBottomMm}mm)`,
               boxSizing: 'border-box',
-              position: 'relative',
+              overflow: 'hidden',
               zIndex: 20,
             }}
           >
-            <div className="flex-1 flex flex-col justify-start">
+            <div className="flex-1 flex flex-col justify-start overflow-hidden">
               {/* Ref Number & Date Row */}
               <div className="flex items-center justify-between text-xs mb-6 pb-2 border-b border-slate-200/80">
                 <div>
@@ -756,6 +790,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   </div>
                 )}
 
+                {/* Page Center Official Stamp / Seal Overlay */}
+                {signatory.showSeal && signatory.sealImage && signatory.sealPosition === 'page-center' && (
+                  <div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 select-none"
+                    style={{
+                      transform: `translate(-50%, -50%) scale(${signatory.sealScale || 1.0})`,
+                      opacity: signatory.sealOpacity || 0.85,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={signatory.sealImage} alt="Centered Official Stamp" className="w-48 h-48 object-contain" />
+                  </div>
+                )}
+
                 {/* Page-Specific Margins Calculation for Page N */}
                 {(() => {
                   const pgTopMm = pg.marginTopMm ?? layout.page2MarginTopMm ?? layout.marginTopMm;
@@ -805,18 +853,20 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
 
                       {/* Page N Content */}
                       <div
-                        className="relative z-20 flex flex-col justify-between h-full text-slate-900"
+                        className="absolute z-20 flex flex-col justify-between text-slate-900"
                         style={{
-                          paddingTop: `${pgTopPx}px`,
-                          paddingBottom: `${pgBottomPx}px`,
-                          paddingLeft: `${pgLeftPx}px`,
-                          paddingRight: `${pgRightPx}px`,
+                          top: `${pgTopPx}px`,
+                          bottom: `${pgBottomPx}px`,
+                          left: `${pgLeftPx}px`,
+                          right: `${pgRightPx}px`,
+                          height: `calc(297mm - ${pgTopMm}mm - ${pgBottomMm}mm)`,
+                          maxHeight: `calc(297mm - ${pgTopMm}mm - ${pgBottomMm}mm)`,
                           boxSizing: 'border-box',
-                          position: 'relative',
+                          overflow: 'hidden',
                           zIndex: 20,
                         }}
                       >
-                  <div className="flex-1 flex flex-col justify-start">
+                  <div className="flex-1 flex flex-col justify-start overflow-hidden">
                     {/* Continuation Header Bar */}
                     {body.multiPage?.showHeaderBarOnContinuation !== false && (
                       (() => {

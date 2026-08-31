@@ -490,6 +490,27 @@ export const SignatoryTab: React.FC<SignatoryTabProps> = ({
               </label>
             )}
 
+            {/* Stamp Position Alignment */}
+            <div>
+              <label className="text-muted-foreground mb-1.5 block font-medium">Stamp Alignment Position</label>
+              <div className="grid grid-cols-4 gap-1">
+                {(['left', 'center', 'right', 'page-center'] as const).map((pos) => (
+                  <button
+                    key={pos}
+                    type="button"
+                    onClick={() => updateSignatory({ sealPosition: pos })}
+                    className={`py-1.5 px-1.5 rounded-md text-[10px] font-bold capitalize transition cursor-pointer ${
+                      (document.signatory.sealPosition || 'center') === pos
+                        ? 'bg-gradient-to-r from-[#7f469b] to-[#4d2a7c] text-white shadow-xs'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {pos === 'page-center' ? 'Page Center' : pos}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Stamp Adjustments */}
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex justify-between">
