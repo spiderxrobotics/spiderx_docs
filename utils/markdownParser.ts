@@ -76,14 +76,8 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
     if (currentListItems.length > 0 && currentListType) {
       const tag = currentListType === 'ol' ? 'ol' : 'ul';
       const cls = currentListType === 'ol' ? 'decimal' : 'disc';
-
-      // Chunk list items into small 2-item blocks for granular page splitting without large gaps
-      const chunkSize = 2;
-      for (let i = 0; i < currentListItems.length; i += chunkSize) {
-        const chunk = currentListItems.slice(i, i + chunkSize);
-        const itemsHtml = chunk.map((it) => `<li>${it}</li>`).join('');
-        blocks.push(`<${tag} class="${cls}">${itemsHtml}</${tag}>`);
-      }
+      const itemsHtml = currentListItems.map((it) => `<li>${it}</li>`).join('');
+      blocks.push(`<${tag} class="${cls}">${itemsHtml}</${tag}>`);
 
       currentListItems = [];
       currentListType = null;
@@ -347,64 +341,91 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
 }
 
 /**
- * Calculates visual height weight for document blocks
- * 1.0 weight unit = ~1 line of formatted text (~4.0mm height)
+ * Calculates physical height estimation in millimeters (mm) for document blocks in A4 layout
  */
-export function getBlockWeight(html: string): number {
-  if (!html) return 0.5;
+export function getBlockHeightMm(html: string): number {
+  if (!html) return 4.0;
 
-  // Table block weight: 1.2 header base + 1.1 per row
+  // Table block: 2.5mm base + 4.5mm header + 4.0mm per data row
   if (html.includes('<table')) {
     const trCount = (html.match(/<tr/gi) || []).length;
-    return Math.max(2.2, 1.2 + trCount * 1.1);
+    const hasHeader = html.includes('<th');
+    return 2.5 + (hasHeader ? 4.5 : 0) + trCount * 4.0;
   }
 
-  // List block weight: 0.5 container base + 1.0 per item
+  // List block: 2.0mm container base + 3.8mm per line of list item
   if (html.includes('<ol') || html.includes('<ul')) {
-    const liCount = (html.match(/<li/gi) || []).length;
-    return Math.max(0.8, 0.5 + liCount * 1.0);
+    const liMatches = html.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
+    let totalLiMm = 0;
+    liMatches.forEach((liHtml) => {
+      const clean = liHtml.replace(/<[^>]*>/g, '');
+      const lines = Math.max(1, Math.ceil(clean.length / 80));
+      totalLiMm += 1.5 + lines * 3.6; // ~5.1mm for 1 line, ~8.7mm for 2 lines
+    });
+    return Math.max(4.0, 2.0 + totalLiMm);
   }
 
-  // Heading weights (includes line height + top/bottom margins)
-  if (html.startsWith('<h1>')) return 2.0;
-  if (html.startsWith('<h2>')) return 1.6;
-  if (html.startsWith('<h3>')) return 1.3;
+  // Heading blocks
+  if (html.startsWith('<h1>') || html.startsWith('# ')) return 6.5;
+  if (html.startsWith('<h2>') || html.startsWith('## ')) return 5.0;
+  if (html.startsWith('<h3>') || html.startsWith('### ')) return 4.2;
 
-  // Text length weighting (based on ~70 characters per 10.5pt line)
+  // Paragraph text length estimation (~80 characters per line)
   const cleanText = html.replace(/<[^>]*>/g, '');
-  if (!cleanText) return 0.5;
+  if (!cleanText) return 4.0;
 
-  const estimatedLines = Math.ceil(cleanText.length / 70);
-  return Math.max(0.8, estimatedLines * 0.9 + 0.2);
+  const estimatedLines = Math.max(1, Math.ceil(cleanText.length / 80));
+  return 2.5 + estimatedLines * 3.8;
+}
+
+// Backward compatible alias
+export function getBlockWeight(html: string): number {
+  return Number((getBlockHeightMm(html) / 4.0).toFixed(1));
 }
 
 /**
- * Dynamically calculates available weight capacity based on actual top/bottom margin clearances in mm
- * 1.0 weight unit = 4.0mm height
+ * Calculates available body height capacity in mm
  */
+export function calculatePageHeightCapacityMm(
+  topMm: number = 40,
+  bottomMm: number = 52,
+  options?: {
+    hasRecipient?: boolean;
+    hasSubject?: boolean;
+    isPage1?: boolean;
+    isLastPage?: boolean;
+  }
+): number {
+  const isPage1 = options?.isPage1 ?? true;
+  const isLastPage = options?.isLastPage ?? false;
+  const hasRec = options?.hasRecipient ?? true;
+  const hasSub = options?.hasSubject ?? true;
+
+  const refDateMm = isPage1 ? 6 : 0;
+  const recipientMm = isPage1 && hasRec ? 20 : 0;
+  const subjectMm = isPage1 && hasSub ? 8 : 0;
+  const headerBarMm = !isPage1 ? 6 : 0;
+  
+  // Footer clearance: If last page, reserve 42mm for signatures/seals; otherwise 6mm for continuation notice
+  const footerMm = isLastPage ? 42 : 6;
+
+  const reservedMm = topMm + bottomMm + refDateMm + recipientMm + subjectMm + headerBarMm + footerMm;
+  return Math.max(30, 297 - reservedMm);
+}
+
 export function calculatePageWeightCapacity(
   topMm: number = 40,
   bottomMm: number = 52,
   hasRecipient: boolean = false,
   isPage1: boolean = true
 ): number {
-  // Reserved heights on Page 1 vs Page N (in mm)
-  const refDateH = isPage1 ? 12 : 0;
-  const recipientH = isPage1 && hasRecipient ? 34 : 0;
-  const subjectH = isPage1 ? 16 : 0;
-  const headerH = !isPage1 ? 12 : 0;
-  const footerH = 12; // Base continuation notice height reserve
-
-  const reservedH = topMm + bottomMm + refDateH + recipientH + subjectH + headerH + footerH;
-  const availableMm = Math.max(20, 297 - reservedH);
-
-  // 1 weight unit = 4.0mm
-  return Number((availableMm / 4.0).toFixed(1));
+  const capMm = calculatePageHeightCapacityMm(topMm, bottomMm, { hasRecipient, isPage1, isLastPage: false });
+  return Number((capMm / 4.0).toFixed(1));
 }
 
 /**
  * Height-weighted dynamic page distribution algorithm
- * Uses chunked list blocks to fill Page 1 and Page N densely (~95%) without gaps or footer collisions
+ * Calculates physical block heights in mm and dynamically reserves signature space on the final page
  */
 export function distributeBlocksAcrossPages(
   allBlocks: string[],
@@ -416,6 +437,7 @@ export function distributeBlocksAcrossPages(
     page2MarginTopMm?: number;
     page2MarginBottomMm?: number;
     hasRecipient?: boolean;
+    hasSubject?: boolean;
   }
 ): DistributedPagesResult {
   const p1Top = layoutOptions?.marginTopMm ?? 40;
@@ -423,15 +445,12 @@ export function distributeBlocksAcrossPages(
   const p2Top = layoutOptions?.page2MarginTopMm ?? 38;
   const p2Bottom = layoutOptions?.page2MarginBottomMm ?? 52;
   const hasRec = layoutOptions?.hasRecipient ?? true;
+  const hasSub = layoutOptions?.hasSubject ?? true;
 
-  const actualTargetPage1 = targetPage1Weight ?? calculatePageWeightCapacity(p1Top, p1Bottom, hasRec, true);
-  const actualTargetPageN = targetPageNWeight ?? calculatePageWeightCapacity(p2Top, p2Bottom, false, false);
   const cleanBlocks = allBlocks.filter((b) => b !== '<!-- PAGE_BREAK -->');
 
   // Check if explicit page breaks exist
-  const hasExplicitBreaks = allBlocks.includes('<!-- PAGE_BREAK -->');
-
-  if (hasExplicitBreaks) {
+  if (allBlocks.includes('<!-- PAGE_BREAK -->')) {
     const pageSegments: string[][] = [[]];
     for (const b of allBlocks) {
       if (b === '<!-- PAGE_BREAK -->') {
@@ -453,34 +472,47 @@ export function distributeBlocksAcrossPages(
     return { page1Paragraphs, additionalPages };
   }
 
-  // Calculate total weight
-  let totalWeight = 0;
+  // Calculate capacities in mm
+  const p1CapacityMm = targetPage1Weight
+    ? targetPage1Weight * 4.0
+    : calculatePageHeightCapacityMm(p1Top, p1Bottom, { hasRecipient: hasRec, hasSubject: hasSub, isPage1: true, isLastPage: false });
+
+  const p1SinglePageCapacityMm = calculatePageHeightCapacityMm(p1Top, p1Bottom, { hasRecipient: hasRec, hasSubject: hasSub, isPage1: true, isLastPage: true });
+
+  const pNIntermediateCapacityMm = targetPageNWeight
+    ? targetPageNWeight * 4.0
+    : calculatePageHeightCapacityMm(p2Top, p2Bottom, { isPage1: false, isLastPage: false });
+
+  const pNLastPageCapacityMm = calculatePageHeightCapacityMm(p2Top, p2Bottom, { isPage1: false, isLastPage: true });
+
+  // Total content height in mm
+  let totalContentMm = 0;
   cleanBlocks.forEach((b) => {
-    totalWeight += getBlockWeight(b);
+    totalContentMm += getBlockHeightMm(b);
   });
 
-  // If total content fits on Page 1 without overflow, keep all on Page 1
-  if (totalWeight <= actualTargetPage1) {
+  // If all content fits on Page 1 along with single-page signatures block:
+  if (totalContentMm <= p1SinglePageCapacityMm) {
     return {
       page1Paragraphs: cleanBlocks,
       additionalPages: [],
     };
   }
 
-  // Distribute blocks dynamically using height weights
+  // Distribute blocks onto Page 1
   const page1Paragraphs: string[] = [];
   const remainingBlocks: string[] = [...cleanBlocks];
 
-  let currentWeight = 0;
+  let currentP1Mm = 0;
   while (remainingBlocks.length > 0) {
     const nextBlock = remainingBlocks[0];
-    const w = getBlockWeight(nextBlock);
+    const bMm = getBlockHeightMm(nextBlock);
 
-    if (currentWeight > 0 && currentWeight + w > actualTargetPage1) {
-      // Prevent Orphan Headings: If the last item on Page 1 is a heading (h1, h2, h3), push it to Page 2
+    if (currentP1Mm > 0 && currentP1Mm + bMm > p1CapacityMm) {
+      // Prevent Orphan Headings
       if (page1Paragraphs.length > 0) {
         const lastBlock = page1Paragraphs[page1Paragraphs.length - 1];
-        if (lastBlock.startsWith('<h1') || lastBlock.startsWith('<h2') || lastBlock.startsWith('<h3')) {
+        if (lastBlock.startsWith('<h1') || lastBlock.startsWith('<h2') || lastBlock.startsWith('<h3') || lastBlock.startsWith('#')) {
           remainingBlocks.unshift(page1Paragraphs.pop()!);
         }
       }
@@ -488,25 +520,35 @@ export function distributeBlocksAcrossPages(
     }
 
     page1Paragraphs.push(remainingBlocks.shift()!);
-    currentWeight += w;
+    currentP1Mm += bMm;
   }
 
+  // Distribute remaining blocks onto Page 2, Page 3, etc.
   const additionalPages: { id: string; pageNumber: number; paragraphs: string[] }[] = [];
   let pageNum = 2;
 
   while (remainingBlocks.length > 0) {
+    // Calculate total remaining content height in mm
+    let remainingMm = 0;
+    remainingBlocks.forEach((b) => {
+      remainingMm += getBlockHeightMm(b);
+    });
+
+    // Check if ALL remaining blocks fit on this page if it were the LAST page (with signature block)
+    const capForThisPage = remainingMm <= pNLastPageCapacityMm ? pNLastPageCapacityMm : pNIntermediateCapacityMm;
+
     const pageBlocks: string[] = [];
-    let pWeight = 0;
+    let pMm = 0;
 
     while (remainingBlocks.length > 0) {
       const nextBlock = remainingBlocks[0];
-      const w = getBlockWeight(nextBlock);
+      const bMm = getBlockHeightMm(nextBlock);
 
-      if (pWeight > 0 && pWeight + w > actualTargetPageN) {
-        // Prevent Orphan Headings on additional pages
+      if (pMm > 0 && pMm + bMm > capForThisPage) {
+        // Prevent Orphan Headings on continuation pages
         if (pageBlocks.length > 0) {
           const lastBlock = pageBlocks[pageBlocks.length - 1];
-          if (lastBlock.startsWith('<h1') || lastBlock.startsWith('<h2') || lastBlock.startsWith('<h3')) {
+          if (lastBlock.startsWith('<h1') || lastBlock.startsWith('<h2') || lastBlock.startsWith('<h3') || lastBlock.startsWith('#')) {
             remainingBlocks.unshift(pageBlocks.pop()!);
           }
         }
@@ -514,7 +556,7 @@ export function distributeBlocksAcrossPages(
       }
 
       pageBlocks.push(remainingBlocks.shift()!);
-      pWeight += w;
+      pMm += bMm;
     }
 
     if (pageBlocks.length > 0) {

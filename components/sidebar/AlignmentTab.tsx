@@ -275,18 +275,28 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
                 </span>
               </div>
 
-              {/* Top Margin Slider */}
+              {/* Top Margin Slider & Numeric Input */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-foreground font-medium">Header Clearance (Top Margin)</span>
-                  <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {currentTopMm} mm (~{Math.round(currentTopMm * 3.7795)} px)
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min="10"
+                      max="150"
+                      step="0.5"
+                      value={currentTopMm}
+                      onChange={(e) => handleTopChange(Number(e.target.value))}
+                      className="h-7 w-20 text-xs font-mono font-bold text-[#7f469b] dark:text-[#a862c8] bg-background border-input rounded-md text-right pr-2"
+                    />
+                    <span className="text-[11px] font-mono text-muted-foreground">mm</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">(~{Math.round(currentTopMm * 3.7795)}px)</span>
+                  </div>
                 </div>
                 <input
                   type="range"
                   min="10"
-                  max="120"
+                  max="150"
                   step="0.5"
                   value={currentTopMm}
                   onChange={(e) => handleTopChange(Number(e.target.value))}
@@ -297,18 +307,28 @@ export const AlignmentTab: React.FC<AlignmentTabProps> = ({
                 </span>
               </div>
 
-              {/* Bottom Margin Slider */}
+              {/* Bottom Margin Slider & Numeric Input */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-foreground font-medium">Footer Clearance (Bottom Margin)</span>
-                  <span className="font-mono text-[#7f469b] dark:text-[#a862c8] font-bold">
-                    {currentBottomMm} mm (~{Math.round(currentBottomMm * 3.7795)} px)
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min="10"
+                      max="150"
+                      step="0.5"
+                      value={currentBottomMm}
+                      onChange={(e) => handleBottomChange(Number(e.target.value))}
+                      className="h-7 w-20 text-xs font-mono font-bold text-[#7f469b] dark:text-[#a862c8] bg-background border-input rounded-md text-right pr-2"
+                    />
+                    <span className="text-[11px] font-mono text-muted-foreground">mm</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">(~{Math.round(currentBottomMm * 3.7795)}px)</span>
+                  </div>
                 </div>
                 <input
                   type="range"
                   min="10"
-                  max="120"
+                  max="150"
                   step="0.5"
                   value={currentBottomMm}
                   onChange={(e) => handleBottomChange(Number(e.target.value))}

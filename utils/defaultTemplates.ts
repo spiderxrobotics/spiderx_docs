@@ -84,7 +84,7 @@ export const DEFAULT_DOCUMENT: DocumentData = {
     showSeal: false,
     sealScale: 1.0,
     sealOpacity: 0.9,
-    sealPosition: 'center',
+    sealPosition: 'behind-signature',
     alignment: 'left',
 
     director2Name: '',

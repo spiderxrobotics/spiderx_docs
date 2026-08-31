@@ -199,20 +199,19 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
             {/* Director 1 */}
             <div className="flex-1 relative">
               <div className="relative inline-block min-w-[200px] w-full">
-                {signatory.showSeal && signatory.sealImage && signatory.sealPosition !== 'page-center' && (
+                {signatory.showSeal && signatory.sealImage && (
                   <div
-                    className={`absolute -top-10 pointer-events-none z-10 select-none ${
-                      signatory.sealPosition === 'right'
-                        ? '-right-6'
-                        : signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
-                        ? 'left-1/2 -translate-x-1/2'
-                        : '-left-6'
+                    className={`absolute pointer-events-none z-10 select-none ${
+                      signatory.sealPosition === 'center'
+                        ? 'left-1/2 -translate-x-1/2 -top-10'
+                        : signatory.sealPosition === 'right'
+                        ? '-right-6 -top-10'
+                        : signatory.sealPosition === 'behind-signature'
+                        ? 'left-1/2 -translate-x-1/2 -top-6'
+                        : '-left-6 -top-10'
                     }`}
                     style={{
-                      transform:
-                        signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
-                          ? `translateX(-50%) scale(${signatory.sealScale || 1.0})`
-                          : `scale(${signatory.sealScale || 1.0})`,
+                      transform: `scale(${signatory.sealScale || 1.0})`,
                       opacity: signatory.sealOpacity || 0.85,
                     }}
                   >
@@ -245,7 +244,15 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
               <div className="relative inline-block min-w-[200px] w-full">
                 {signatory.showDirector2Seal && signatory.director2SealImage && (
                   <div
-                    className="absolute -top-10 -right-6 pointer-events-none z-10 select-none"
+                    className={`absolute pointer-events-none z-10 select-none ${
+                      signatory.director2SealPosition === 'center'
+                        ? 'left-1/2 -translate-x-1/2 -top-10'
+                        : signatory.director2SealPosition === 'left'
+                        ? '-left-6 -top-10'
+                        : signatory.director2SealPosition === 'behind-signature'
+                        ? 'left-1/2 -translate-x-1/2 -top-6'
+                        : '-right-6 -top-10'
+                    }`}
                     style={{
                       transform: `scale(${signatory.sealScale || 1.0})`,
                       opacity: signatory.sealOpacity || 0.85,
@@ -290,20 +297,19 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
           >
             {/* Company / Director Signature Box */}
             <div className="relative inline-block min-w-[200px] flex-1 max-w-[280px]">
-              {signatory.showSeal && signatory.sealImage && signatory.sealPosition !== 'page-center' && (
+              {signatory.showSeal && signatory.sealImage && (
                 <div
-                  className={`absolute -top-10 pointer-events-none z-10 select-none ${
-                    signatory.sealPosition === 'right'
-                      ? '-right-6'
-                      : signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
-                      ? 'left-1/2 -translate-x-1/2'
-                      : '-left-6'
+                  className={`absolute pointer-events-none z-10 select-none ${
+                    signatory.sealPosition === 'center'
+                      ? 'left-1/2 -translate-x-1/2 -top-10'
+                      : signatory.sealPosition === 'right'
+                      ? '-right-6 -top-10'
+                      : signatory.sealPosition === 'behind-signature'
+                      ? 'left-1/2 -translate-x-1/2 -top-6'
+                      : '-left-6 -top-10'
                   }`}
                   style={{
-                    transform:
-                      signatory.sealPosition === 'center' || signatory.sealPosition === 'behind-signature'
-                        ? `translateX(-50%) scale(${signatory.sealScale || 1.0})`
-                        : `scale(${signatory.sealScale || 1.0})`,
+                    transform: `scale(${signatory.sealScale || 1.0})`,
                     opacity: signatory.sealOpacity || 0.85,
                   }}
                 >
@@ -444,20 +450,6 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                   left: 0,
                 }}
               />
-            </div>
-          )}
-
-          {/* Page Center Official Stamp / Seal Overlay */}
-          {signatory.showSeal && signatory.sealImage && signatory.sealPosition === 'page-center' && (
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 select-none"
-              style={{
-                transform: `translate(-50%, -50%) scale(${signatory.sealScale || 1.0})`,
-                opacity: signatory.sealOpacity || 0.85,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={signatory.sealImage} alt="Centered Official Stamp" className="w-48 h-48 object-contain" />
             </div>
           )}
 
@@ -787,20 +779,6 @@ export const LetterheadCanvas: React.FC<LetterheadCanvasProps> = ({
                         left: 0,
                       }}
                     />
-                  </div>
-                )}
-
-                {/* Page Center Official Stamp / Seal Overlay */}
-                {signatory.showSeal && signatory.sealImage && signatory.sealPosition === 'page-center' && (
-                  <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 select-none"
-                    style={{
-                      transform: `translate(-50%, -50%) scale(${signatory.sealScale || 1.0})`,
-                      opacity: signatory.sealOpacity || 0.85,
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={signatory.sealImage} alt="Centered Official Stamp" className="w-48 h-48 object-contain" />
                   </div>
                 )}
 
