@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DocumentData, DocumentPage } from '@/types/letterhead';
-import { Plus, Trash2, FileText, Upload, CheckCircle2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, FileText, Upload, CheckCircle2, Sparkles, ArrowRight, ArrowLeft, CornerDownRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { parseMarkdownToDocumentBlocks, distributeBlocksAcrossPages } from '@/utils/markdownParser';
 import dynamic from 'next/dynamic';
@@ -162,6 +162,164 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
     }
   };
 
+  // Move individual block to target page (e.g. Move to Prev Page or Next Page)
+  const handleMoveBlockToPage = (blockIdx: number, targetPageNum: number) => {
+    const blockToMove = activeParagraphs[blockIdx];
+    if (!blockToMove) return;
+
+    const remainingCurrent = activeParagraphs.filter((_, i) => i !== blockIdx);
+    const p1Paragraphs = isEditingPage1 ? remainingCurrent : [...document.body.paragraphs];
+    const pagesCopy = [...additionalPages];
+
+    if (targetPageNum === 1) {
+      p1Paragraphs.push(blockToMove);
+      if (!isEditingPage1 && targetPageIdx >= 0) {
+        pagesCopy[targetPageIdx] = {
+          ...pagesCopy[targetPageIdx],
+          paragraphs: remainingCurrent,
+        };
+      }
+    } else {
+      const destIdx = targetPageNum - 2;
+      if (!pagesCopy[destIdx]) {
+        pagesCopy.push({
+          id: `page-${targetPageNum}-${Date.now()}`,
+          pageNumber: targetPageNum,
+          paragraphs: [blockToMove],
+        });
+      } else {
+        pagesCopy[destIdx] = {
+          ...pagesCopy[destIdx],
+          paragraphs: [blockToMove, ...pagesCopy[destIdx].paragraphs],
+        };
+      }
+      if (!isEditingPage1 && targetPageIdx >= 0) {
+        pagesCopy[targetPageIdx] = {
+          ...pagesCopy[targetPageIdx],
+          paragraphs: remainingCurrent,
+        };
+      }
+    }
+
+    updateBody({
+      paragraphs: p1Paragraphs,
+      multiPage: {
+        ...(document.body.multiPage || {}),
+        enableMultiPage: true,
+        pages: pagesCopy,
+      },
+    });
+  };
+
+  // Push this block and all subsequent blocks to the Next Page (Page Break)
+  const handlePushToNextPage = (blockIdx: number) => {
+    const keepOnCurrent = activeParagraphs.slice(0, blockIdx);
+    const pushToNext = activeParagraphs.slice(blockIdx);
+    if (pushToNext.length === 0) return;
+
+    const nextPgNum = currentContentPage + 1;
+    const destIdx = nextPgNum - 2;
+    const pagesCopy = [...additionalPages];
+
+    if (isEditingPage1) {
+      if (!pagesCopy[destIdx]) {
+        pagesCopy.push({
+          id: `page-${nextPgNum}-${Date.now()}`,
+          pageNumber: nextPgNum,
+          paragraphs: pushToNext,
+        });
+      } else {
+        pagesCopy[destIdx] = {
+          ...pagesCopy[destIdx],
+          paragraphs: [...pushToNext, ...pagesCopy[destIdx].paragraphs],
+        };
+      }
+      updateBody({
+        paragraphs: keepOnCurrent,
+        multiPage: {
+          ...(document.body.multiPage || {}),
+          enableMultiPage: true,
+          pages: pagesCopy,
+        },
+      });
+    } else if (targetPageIdx >= 0) {
+      pagesCopy[targetPageIdx] = {
+        ...pagesCopy[targetPageIdx],
+        paragraphs: keepOnCurrent,
+      };
+      if (!pagesCopy[destIdx]) {
+        pagesCopy.push({
+          id: `page-${nextPgNum}-${Date.now()}`,
+          pageNumber: nextPgNum,
+          paragraphs: pushToNext,
+        });
+      } else {
+        pagesCopy[destIdx] = {
+          ...pagesCopy[destIdx],
+          paragraphs: [...pushToNext, ...pagesCopy[destIdx].paragraphs],
+        };
+      }
+      updateBody({
+        multiPage: {
+          ...(document.body.multiPage || {}),
+          enableMultiPage: true,
+          pages: pagesCopy,
+        },
+      });
+    }
+  };
+
+  // Pull first block from next page to current page (Backspace behavior)
+  const handlePullFromNextPage = () => {
+    const nextPgNum = currentContentPage + 1;
+    const destIdx = nextPgNum - 2;
+    if (destIdx < 0 || destIdx >= additionalPages.length) return;
+
+    const targetPgObj = additionalPages[destIdx];
+    if (!targetPgObj || targetPgObj.paragraphs.length === 0) return;
+
+    const blockToPull = targetPgObj.paragraphs[0];
+    const remainingNext = targetPgObj.paragraphs.slice(1);
+
+    const pagesCopy = [...additionalPages];
+    if (remainingNext.length === 0) {
+      pagesCopy.splice(destIdx, 1);
+    } else {
+      pagesCopy[destIdx] = {
+        ...pagesCopy[destIdx],
+        paragraphs: remainingNext,
+      };
+    }
+
+    if (isEditingPage1) {
+      updateBody({
+        paragraphs: [...document.body.paragraphs, blockToPull],
+        multiPage: {
+          ...(document.body.multiPage || {}),
+          pages: pagesCopy,
+        },
+      });
+    } else if (targetPageIdx >= 0) {
+      pagesCopy[targetPageIdx] = {
+        ...pagesCopy[targetPageIdx],
+        paragraphs: [...activeParagraphs, blockToPull],
+      };
+      updateBody({
+        multiPage: {
+          ...(document.body.multiPage || {}),
+          pages: pagesCopy,
+        },
+      });
+    }
+  };
+
+  // Insert new block at specific index on current page
+  const handleInsertBlockAt = (atIndex: number, defaultContent: string = '<p>New paragraph text...</p>') => {
+    const updated = [...activeParagraphs];
+    updated.splice(atIndex, 0, defaultContent);
+    updateActiveParagraphs(updated);
+  };
+
   // Add new page
   const handleAddNewPage = () => {
     const nextPgNum = additionalPages.length + 2;
@@ -222,6 +380,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
         } = parseMarkdownToDocumentBlocks(text);
 
         const hasRec = Boolean(parsedRec?.name) || document.recipient?.showRecipient !== false;
+        const hasSub = Boolean(subject || document.body.subject);
         const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(
           newBlocks,
           undefined,
@@ -232,6 +391,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
             page2MarginTopMm: document.layout.page2MarginTopMm,
             page2MarginBottomMm: document.layout.page2MarginBottomMm,
             hasRecipient: hasRec,
+            hasSubject: hasSub,
           }
         );
 
@@ -295,6 +455,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
     if (allCombined.length === 0) return;
 
     const hasRec = document.recipient?.showRecipient !== false;
+    const hasSub = Boolean(document.body.showSubject && document.body.subject);
     const { page1Paragraphs, additionalPages: distributedPages } = distributeBlocksAcrossPages(
       allCombined,
       undefined,
@@ -305,6 +466,7 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
         page2MarginTopMm: document.layout.page2MarginTopMm,
         page2MarginBottomMm: document.layout.page2MarginBottomMm,
         hasRecipient: hasRec,
+        hasSubject: hasSub,
       }
     );
 
@@ -788,24 +950,76 @@ export const DocumentBodyTab: React.FC<DocumentBodyTabProps> = ({
 
               return (
                 <div key={`page-${currentContentPage}-block-${idx}`} className="space-y-2.5 bg-background/50 border border-border p-3 rounded-md">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pb-1 border-b border-border/40">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
                       {isTableBlock ? 'Table Block' : isListBlock ? 'List Block' : isHeadingBlock ? 'Heading Block' : 'Paragraph Block'} {idx + 1}
                       <span className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                         Page {currentContentPage}
                       </span>
                     </span>
-                    {activeParagraphs.length > 1 && (
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        onClick={() =>
-                          updateActiveParagraphs(activeParagraphs.filter((_, i) => i !== idx))
-                        }
-                        className="text-destructive hover:underline text-xs font-semibold"
+                        onClick={() => handleInsertBlockAt(idx, '<p>New paragraph above...</p>')}
+                        title="Insert new paragraph above this block"
+                        className="px-1.5 py-0.5 bg-muted hover:bg-accent text-muted-foreground hover:text-foreground rounded text-[10px] font-semibold transition"
                       >
-                        Delete Block
+                        + Above
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => handleInsertBlockAt(idx + 1, '<p>New paragraph below...</p>')}
+                        title="Insert new paragraph below this block"
+                        className="px-1.5 py-0.5 bg-muted hover:bg-accent text-muted-foreground hover:text-foreground rounded text-[10px] font-semibold transition"
+                      >
+                        + Below
+                      </button>
+
+                      {currentContentPage > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleMoveBlockToPage(idx, currentContentPage - 1)}
+                          title={`Move to Page ${currentContentPage - 1}`}
+                          className="px-1.5 py-0.5 bg-muted hover:bg-accent text-muted-foreground hover:text-foreground rounded text-[10px] flex items-center gap-0.5 transition"
+                        >
+                          <ArrowLeft className="w-2.5 h-2.5" />
+                          <span>P{currentContentPage - 1}</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handlePushToNextPage(idx)}
+                        title={`Break Page Here (Push this block & everything below to Page ${currentContentPage + 1})`}
+                        className="px-1.5 py-0.5 bg-[#7f469b]/10 hover:bg-[#7f469b]/20 text-[#7f469b] dark:text-[#a862c8] rounded text-[10px] font-semibold flex items-center gap-0.5 transition"
+                      >
+                        <CornerDownRight className="w-2.5 h-2.5" />
+                        <span>Break to P{currentContentPage + 1}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMoveBlockToPage(idx, currentContentPage + 1)}
+                        title={`Move to Page ${currentContentPage + 1}`}
+                        className="px-1.5 py-0.5 bg-muted hover:bg-accent text-muted-foreground hover:text-foreground rounded text-[10px] flex items-center gap-0.5 transition"
+                      >
+                        <span>P{currentContentPage + 1}</span>
+                        <ArrowRight className="w-2.5 h-2.5" />
+                      </button>
+
+                      {activeParagraphs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateActiveParagraphs(activeParagraphs.filter((_, i) => i !== idx))
+                          }
+                          title="Delete this block"
+                          className="text-destructive hover:bg-destructive/10 p-1 rounded transition ml-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Custom Table Block Editor */}
