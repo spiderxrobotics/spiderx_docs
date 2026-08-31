@@ -8,14 +8,21 @@ import { jsPDF } from 'jspdf';
 async function waitForAssets(root: HTMLElement) {
   const imgs = Array.from(root.querySelectorAll('img'));
   await Promise.all(
-    imgs.map((img) =>
-      img.complete && img.naturalWidth > 0
-        ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-            img.addEventListener('load', () => resolve(), { once: true });
-            img.addEventListener('error', () => resolve(), { once: true });
-          })
-    )
+    imgs.map(async (img) => {
+      if (!img.complete || img.naturalWidth === 0) {
+        await new Promise<void>((resolve) => {
+          img.addEventListener('load', () => resolve(), { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+        });
+      }
+      try {
+        if ('decode' in img) {
+          await img.decode();
+        }
+      } catch {
+        /* ignore decode error */
+      }
+    })
   );
 
   if ('fonts' in document) {
@@ -76,6 +83,8 @@ export async function exportLetterheadToPdf(filename: string = 'SpiderX_Letterhe
 
     for (let i = 0; i < pageElements.length; i++) {
       const pageEl = pageElements[i];
+      const pageWidthPx = pageEl.offsetWidth || 794;
+      const pageHeightPx = pageEl.offsetHeight || 1123;
 
       const canvas = await html2canvas(pageEl, {
         scale: 2, // 300 DPI high-resolution capture
@@ -85,10 +94,10 @@ export async function exportLetterheadToPdf(filename: string = 'SpiderX_Letterhe
         backgroundColor: '#ffffff',
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 1200,
-        windowHeight: 1600,
-        width: pageEl.offsetWidth,
-        height: pageEl.offsetHeight,
+        windowWidth: pageWidthPx,
+        windowHeight: pageHeightPx,
+        width: pageWidthPx,
+        height: pageHeightPx,
         onclone: (clonedDoc) => {
           const clonedPages = clonedDoc.querySelectorAll<HTMLElement>('.a4-container');
           clonedPages.forEach((clonedPage) => {
@@ -96,6 +105,8 @@ export async function exportLetterheadToPdf(filename: string = 'SpiderX_Letterhe
             clonedPage.style.boxShadow = 'none';
             clonedPage.style.border = 'none';
             clonedPage.style.margin = '0';
+            clonedPage.style.width = '210mm';
+            clonedPage.style.height = '297mm';
           });
         },
       });

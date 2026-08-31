@@ -106,7 +106,11 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
             /total|summary|gross|net|amount due/i.test(c)
           );
 
-        const headHtml = `<thead><tr>${headers.map((h) => `<th>${h || ''}</th>`).join('')}</tr></thead>`;
+        const thStyle = 'padding: 6px 10px; border: 1px solid #6b3587; background-color: #7f469b; color: #ffffff; font-weight: 700; text-align: left; font-size: 11px;';
+        const tdStyle = 'padding: 5px 10px; border: 1px solid #e2e8f0; color: #334155; font-size: 11px;';
+        const totalTdStyle = 'padding: 6px 10px; border: 1px solid #cbd5e1; color: #0f172a; font-weight: 700; background-color: rgba(127, 70, 155, 0.08); font-size: 11px;';
+
+        const headHtml = `<thead style="background-color: #7f469b;"><tr style="background-color: #7f469b;">${headers.map((h) => `<th style="${thStyle}">${h || ''}</th>`).join('')}</tr></thead>`;
         let bodyHtml = '';
         let footHtml = '';
 
@@ -114,18 +118,19 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
           const bodyR = dataRows.slice(0, -1);
           const totalR = dataRows[dataRows.length - 1];
           bodyHtml = `<tbody>${bodyR
-            .map((r) => `<tr>${r.map((c) => `<td>${c || ''}</td>`).join('')}</tr>`)
+            .map((r, rIdx) => `<tr style="background-color: ${rIdx % 2 === 0 ? '#ffffff' : '#f8fafc'};">${r.map((c) => `<td style="${tdStyle}">${c || ''}</td>`).join('')}</tr>`)
             .join('')}</tbody>`;
-          footHtml = `<tfoot><tr class="total-row">${totalR
-            .map((c) => `<td>${c || ''}</td>`)
+          footHtml = `<tfoot><tr class="total-row" style="background-color: rgba(127, 70, 155, 0.08);">${totalR
+            .map((c) => `<td style="${totalTdStyle}">${c || ''}</td>`)
             .join('')}</tr></tfoot>`;
         } else {
           bodyHtml = `<tbody>${dataRows
-            .map((r) => `<tr>${r.map((c) => `<td>${c || ''}</td>`).join('')}</tr>`)
+            .map((r, rIdx) => `<tr style="background-color: ${rIdx % 2 === 0 ? '#ffffff' : '#f8fafc'};">${r.map((c) => `<td style="${tdStyle}">${c || ''}</td>`).join('')}</tr>`)
             .join('')}</tbody>`;
         }
 
-        blocks.push(`<table class="spiderx-table">${headHtml}${bodyHtml}${footHtml}</table>`);
+        const tableStyle = 'width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;';
+        blocks.push(`<table class="spiderx-table" style="${tableStyle}">${headHtml}${bodyHtml}${footHtml}</table>`);
       }
       currentTableRows = [];
     }
@@ -343,47 +348,58 @@ export function parseMarkdownToDocumentBlocks(mdText: string): ParsedMarkdownRes
 
 /**
  * Calculates visual height weight for document blocks
+ * 1.0 weight unit = ~1 line of formatted text (~4.0mm height)
  */
 export function getBlockWeight(html: string): number {
   if (!html) return 0.5;
 
-  // Table block weight: base 2.5 + 0.9 per row
+  // Table block weight: 1.2 header base + 1.1 per row
   if (html.includes('<table')) {
     const trCount = (html.match(/<tr/gi) || []).length;
-    return Math.max(2.5, trCount * 0.9);
+    return Math.max(2.2, 1.2 + trCount * 1.1);
   }
 
-  // List block weight: base 0.3 + 0.45 per item (accurately matching pixel height)
+  // List block weight: 0.5 container base + 1.0 per item
   if (html.includes('<ol') || html.includes('<ul')) {
     const liCount = (html.match(/<li/gi) || []).length;
-    return Math.max(0.6, 0.3 + liCount * 0.45);
+    return Math.max(0.8, 0.5 + liCount * 1.0);
   }
 
-  // Heading weights
-  if (html.startsWith('<h1>')) return 1.1;
-  if (html.startsWith('<h2>')) return 0.9;
-  if (html.startsWith('<h3>')) return 0.8;
+  // Heading weights (includes line height + top/bottom margins)
+  if (html.startsWith('<h1>')) return 2.0;
+  if (html.startsWith('<h2>')) return 1.6;
+  if (html.startsWith('<h3>')) return 1.3;
 
-  // Text length weighting (calibrated accurately to font line height)
+  // Text length weighting (based on ~70 characters per 10.5pt line)
   const cleanText = html.replace(/<[^>]*>/g, '');
-  if (cleanText.length > 320) return 2.6; // ~4-5 lines of text
-  if (cleanText.length > 220) return 2.0; // ~3-4 lines of text
-  if (cleanText.length > 130) return 1.4; // ~2-3 lines of text
-  if (cleanText.length > 60) return 1.0;  // ~1-2 lines of text
+  if (!cleanText) return 0.5;
 
-  return 0.7;
+  const estimatedLines = Math.ceil(cleanText.length / 70);
+  return Math.max(0.8, estimatedLines * 0.9 + 0.2);
 }
 
 /**
  * Dynamically calculates available weight capacity based on actual top/bottom margin clearances in mm
+ * 1.0 weight unit = 4.0mm height
  */
 export function calculatePageWeightCapacity(
   topMm: number = 40,
   bottomMm: number = 52,
-  hasRecipient: boolean = false
+  hasRecipient: boolean = false,
+  isPage1: boolean = true
 ): number {
-  const availableMm = Math.max(40, 297 - topMm - bottomMm - (hasRecipient ? 35 : 0));
-  return Number((availableMm * 0.0683).toFixed(1));
+  // Reserved heights on Page 1 vs Page N (in mm)
+  const refDateH = isPage1 ? 12 : 0;
+  const recipientH = isPage1 && hasRecipient ? 34 : 0;
+  const subjectH = isPage1 ? 16 : 0;
+  const headerH = !isPage1 ? 12 : 0;
+  const footerH = 12; // Base continuation notice height reserve
+
+  const reservedH = topMm + bottomMm + refDateH + recipientH + subjectH + headerH + footerH;
+  const availableMm = Math.max(20, 297 - reservedH);
+
+  // 1 weight unit = 4.0mm
+  return Number((availableMm / 4.0).toFixed(1));
 }
 
 /**
@@ -408,8 +424,8 @@ export function distributeBlocksAcrossPages(
   const p2Bottom = layoutOptions?.page2MarginBottomMm ?? 52;
   const hasRec = layoutOptions?.hasRecipient ?? true;
 
-  const actualTargetPage1 = targetPage1Weight ?? calculatePageWeightCapacity(p1Top, p1Bottom, hasRec);
-  const actualTargetPageN = targetPageNWeight ?? calculatePageWeightCapacity(p2Top, p2Bottom, false);
+  const actualTargetPage1 = targetPage1Weight ?? calculatePageWeightCapacity(p1Top, p1Bottom, hasRec, true);
+  const actualTargetPageN = targetPageNWeight ?? calculatePageWeightCapacity(p2Top, p2Bottom, false, false);
   const cleanBlocks = allBlocks.filter((b) => b !== '<!-- PAGE_BREAK -->');
 
   // Check if explicit page breaks exist
@@ -444,7 +460,7 @@ export function distributeBlocksAcrossPages(
   });
 
   // If total content fits on Page 1 without overflow, keep all on Page 1
-  if (totalWeight <= actualTargetPage1 + 0.8) {
+  if (totalWeight <= actualTargetPage1) {
     return {
       page1Paragraphs: cleanBlocks,
       additionalPages: [],
@@ -516,3 +532,4 @@ export function distributeBlocksAcrossPages(
     additionalPages,
   };
 }
+

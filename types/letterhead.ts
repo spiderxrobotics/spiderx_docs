@@ -26,7 +26,7 @@ export interface DirectorSignatory {
   showSeal: boolean;
   sealScale: number; // 0.5 to 1.5
   sealOpacity: number; // 0.1 to 1.0
-  sealPosition: 'left' | 'right' | 'behind-signature';
+  sealPosition: 'left' | 'right' | 'center' | 'behind-signature' | 'page-center';
   alignment: 'left' | 'center' | 'right';
 
   // Director 2 Credentials (Second Signatory for Dual Mode)
